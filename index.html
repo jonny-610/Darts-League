@@ -105,6 +105,22 @@ tr.q td{background:var(--ok-soft)}
 .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px}
 .banner{background:var(--warn-soft);border-radius:8px;padding:8px 10px;font-size:13px}
 .rules li{margin-bottom:6px}
+a{color:var(--accent);font-weight:600}
+details.stx{margin-top:10px;border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
+details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
+.stg{display:grid;grid-template-columns:1fr minmax(0,1.3fr) 1fr;gap:5px 8px;align-items:center;margin-top:8px}
+.stg input{text-align:center;padding:6px 4px;font-variant-numeric:tabular-nums}
+.stg .lb{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center}
+.stg .hd{font-weight:700;text-align:center;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stg .hd.a{color:var(--a)} .stg .hd.b{color:var(--b)}
+.homegrid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.hon li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.hon li:last-child{border-bottom:0}
+.hon ol{list-style:none;margin:0;padding:0}
+.hon .v{font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.hon .r{display:inline-block;width:22px;color:var(--muted);font-weight:700}
+.res li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.res li:last-child{border-bottom:0}
 .tm{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .tm:last-child{border-bottom:0}
 .tm .who{min-width:0}
@@ -127,7 +143,8 @@ tr.q td{background:var(--ok-soft)}
 <header class="top"><div class="in">
   <div class="brand"><h1>Darts <span>League</span></h1><small id="hdrStatus"></small></div>
   <nav class="tabs" role="tablist">
-    <button role="tab" data-v="scorer" aria-selected="true">Scorer</button>
+    <button role="tab" data-v="home" aria-selected="true">Home</button>
+    <button role="tab" data-v="scorer" aria-selected="false">Scorer</button>
     <button role="tab" data-v="log" aria-selected="false">Results Log</button>
     <button role="tab" data-v="league" aria-selected="false">League</button>
     <button role="tab" data-v="tourn" aria-selected="false">Tournaments</button>
@@ -156,7 +173,11 @@ tr.q td{background:var(--ok-soft)}
 
   <!-- SCORER -->
   <div class="card" id="codeBox" style="margin-bottom:12px"></div>
-  <section class="view" id="v-scorer">
+  <section class="view" id="v-home">
+    <div id="homeOut" style="display:grid;gap:14px"></div>
+  </section>
+
+  <section class="view" id="v-scorer" hidden>
     <div class="card" id="setup">
       <h2>New match</h2>
       <div class="row">
@@ -241,6 +262,7 @@ tr.q td{background:var(--ok-soft)}
         <label class="f" style="flex:0 1 90px">Legs B<input type="number" min="0" max="5" id="qLB" inputmode="numeric"></label>
         <label class="f">Player B<select id="qB"></select></label>
       </div>
+      <div id="qStats"></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="qAdd">Add to log</button><span class="note" id="qMsg"></span></div>
     </div>
     <div class="card">
@@ -286,7 +308,7 @@ tr.q td{background:var(--ok-soft)}
       <li>League runs 26 Oct – 22 Nov 2026.</li></ul>
       <h2>Submitting</h2>
       <ul><li>The winner submits, one row per match. On a draw Player A submits.</li>
-      <li>Quick: date, names and legs. Full: score the match on the Scorer and submit the stats line.</li>
+      <li>Quick: date, names and legs. Played in DartCounter or another app? Open "Add stats from your app" and copy the numbers from its Match details screen so your averages, 180s and checkouts count. Full: score the match on the Scorer and the stats are saved for you.</li>
       <li>The Status column must say OK, otherwise the row is ignored.</li></ul>
       <h2>If matches aren't played</h2>
       <ul><li>Unplayed matches are void: no points to either player, no penalty.</li>
@@ -567,11 +589,45 @@ $("submitBtn").onclick=()=>{const m=M();if(!m||!matchDone()||m.submitted)return;
     if(err){$("doneText").textContent=err;$("submitBtn").disabled=false;$("submitBtn").textContent="Try again";return}
     m.submitted=true;save();if(m.live)pushLive();show("log")})};
 
+/* ---------- app stats form (copy from DartCounter "Match details") ---------- */
+const SF=[["tda","3-dart average","dec"],["f9","First 9 avg","dec"],["co","Checkouts hit","int"],["dbl","Darts at double","int"],["hf","Highest finish","int"],["hs","Highest score","int"],["bl","Best leg (darts)","int"],
+  ["b180","180s","int"],["b160","160+","int"],["b140","140+","int"],["b120","120+","int"],["b100","100+","int"],["b80","80+","int"],["b60","60+","int"],["b40","40+","int"]];
+function statsFormHTML(px,na,nb,open){
+  return `<details class="stx" ${open?"open":""} data-stx="${px}"><summary>Add stats from your app (optional)</summary>
+  <p class="note" style="margin:6px 0 0">Copy the numbers from the app's Match details screen. Leave anything you don't have blank.</p>
+  <div class="stg"><div class="hd a" id="${px}hA">${esc(na||"Player A")}</div><div></div><div class="hd b" id="${px}hB">${esc(nb||"Player B")}</div>
+  ${SF.map(([k,l,t])=>`<input id="${px}a_${k}" inputmode="${t==="dec"?"decimal":"numeric"}" type="number" step="${t==="dec"?"0.01":"1"}" min="0" aria-label="${l} for player A"><div class="lb">${l}</div><input id="${px}b_${k}" inputmode="${t==="dec"?"decimal":"numeric"}" type="number" step="${t==="dec"?"0.01":"1"}" min="0" aria-label="${l} for player B">`).join("")}
+  </div></details>`;
+}
+function readStats(px,la,lb,na,nb){
+  const out={sa:{},sb:{}},errs=[];
+  for(const [side,legs,nm] of [["a",la,na],["b",lb,nb]]){const o=side==="a"?out.sa:out.sb;
+    for(const [k,l,t] of SF){const el=$(`${px}${side}_${k}`);if(!el||el.value.trim()==="")continue;const v=+el.value;
+      if(!isFinite(v)||v<0){errs.push(`${nm}: ${l} must be a positive number`);continue}
+      if(t==="int"&&v!==Math.floor(v)){errs.push(`${nm}: ${l} must be a whole number`);continue}
+      o[k]=t==="dec"?Math.round(v*100)/100:v}
+    if(o.tda>180||o.f9>180)errs.push(`${nm}: averages can't be over 180`);
+    if(o.hf!=null&&(o.hf<2||o.hf>170||BOGEY.includes(o.hf)))errs.push(`${nm}: ${o.hf} isn't a possible checkout`);
+    if(o.hs!=null&&(o.hs>180||IMPOSSIBLE.includes(o.hs)))errs.push(`${nm}: ${o.hs} isn't a possible score`);
+    if(o.co!=null&&legs!==""&&o.co!==+legs)errs.push(`${nm}: checkouts hit should equal legs won (${legs})`);
+    if(o.co!=null&&o.dbl!=null&&o.dbl<o.co)errs.push(`${nm}: darts at double can't be fewer than checkouts hit`);
+    if(o.bl!=null&&(o.bl<9||(legs!==""&&+legs===0)))errs.push(`${nm}: best leg must be 9+ darts and only if they won a leg`);
+    if(o.hf!=null&&legs!==""&&+legs===0)errs.push(`${nm}: highest finish only if they won a leg`);
+    const bands=["b180","b160","b140","b120","b100","b80","b60","b40"].reduce((t,k)=>t+(o[k]||0),0);if(bands>400)errs.push(`${nm}: score band counts look too high`);
+  }
+  out.err=errs[0]||null;return out;
+}
+function clearStats(px){SF.forEach(([k])=>["a","b"].forEach(sd=>{const el=$(`${px}${sd}_${k}`);if(el)el.value=""}))}
+$("qStats").innerHTML=statsFormHTML("q","","",false);
+["qA","qB"].forEach(id=>$(id).addEventListener("change",()=>{$("qhA").textContent=$("qA").value||"Player A";$("qhB").textContent=$("qB").value||"Player B"}));
+
 /* ---------- log view ---------- */
 $("qAdd").onclick=()=>{const r={date:$("qDate").value||today(),a:$("qA").value,la:$("qLA").value===""?"":+$("qLA").value,lb:$("qLB").value===""?"":+$("qLB").value,b:$("qB").value,note:"Quick entry",sa:{},sb:{}};
   if(!r.a||!r.b){$("qMsg").textContent="Pick both players.";return}
+  const st=readStats("q",r.la,r.lb,r.a,r.b);if(st.err){$("qMsg").textContent="Not saved: "+st.err+".";return}
+  r.sa=st.sa;r.sb=st.sb;if(Object.keys(r.sa).length||Object.keys(r.sb).length)r.note="Quick entry + app stats";
   r.sub=r.la>=r.lb?r.a:r.b;$("qMsg").textContent="Saving…";$("qAdd").disabled=true;
-  addResult(r).then(err=>{$("qAdd").disabled=false;$("qMsg").textContent=err||"Saved. Tables updated.";if(!err){$("qLA").value="";$("qLB").value=""}})};
+  addResult(r).then(err=>{$("qAdd").disabled=false;$("qMsg").textContent=err||"Saved. Tables updated.";if(!err){$("qLA").value="";$("qLB").value="";clearStats("q")}})};
 function renderLog(){
   const sts=statuses();
   let h=`<tr><th>Date</th><th class="l">Player A</th><th>Legs</th><th class="l">Player B</th><th>A 3DA</th><th>B 3DA</th><th class="l">Status</th><th></th></tr>`;
@@ -629,7 +685,7 @@ async function loadT(){
   TS.list=l.data;if(!tCur())TS.cur=(TS.list.find(t=>t.status!=="finished")||TS.list[0]||{}).id||null;
   if(TS.cur){const [e,m]=await Promise.all([db.from("lg_t_entries").select("*").eq("tournament_id",TS.cur).order("id"),db.from("lg_t_matches").select("*").eq("tournament_id",TS.cur).order("id")]);
     TS.entries=(e.data||[]).filter(x=>!x.removed);TS.matches=m.data||[]}else{TS.entries=[];TS.matches=[]}
-  renderT();
+  renderT();renderHome();
 }
 function target(t,m){return m.stage==="group"?t.legs_group:(m.round_no===t.ko_rounds?t.legs_final:t.legs_ko)}
 const roundName=(t,r)=>({2:"Final",4:"Semi-finals",8:"Quarter-finals",16:"Last 16",32:"Last 32"})[Math.pow(2,t.ko_rounds-r+1)];
@@ -646,7 +702,7 @@ function matchHTML(t,m,label){
     <div class="sc">${m.is_bye?'<span class="note" style="font-size:13px">bye</span>':done?`${m.legs_a}<br>${m.legs_b}`:`<span class="note" style="font-size:12px">first to ${tg}</span>`}</div>`;
   if(ready&&live){
     if(TS.open===m.id)h+=`<div class="act"><button class="btn primary" data-sc="phone" data-id="${m.id}">Score on this phone</button><button class="btn" data-sc="A" data-id="${m.id}">Online, I'm ${esc(m.player_a.split(" ")[0])}</button><button class="btn" data-sc="B" data-id="${m.id}">Online, I'm ${esc(m.player_b.split(" ")[0])}</button>
-      <span class="row" style="gap:4px"><input type="number" min="0" max="${tg}" inputmode="numeric" id="ra${m.id}" aria-label="Legs ${esc(m.player_a)}">–<input type="number" min="0" max="${tg}" inputmode="numeric" id="rb${m.id}" aria-label="Legs ${esc(m.player_b)}"><button class="btn" data-res="${m.id}">Save app result</button></span><button class="btn" data-close="1">Close</button></div>`;
+      <span class="row" style="gap:4px"><input type="number" min="0" max="${tg}" inputmode="numeric" id="ra${m.id}" aria-label="Legs ${esc(m.player_a)}">–<input type="number" min="0" max="${tg}" inputmode="numeric" id="rb${m.id}" aria-label="Legs ${esc(m.player_b)}"><button class="btn" data-res="${m.id}">Save app result</button></span><button class="btn" data-close="1">Close</button><div style="flex-basis:100%">${statsFormHTML("t"+m.id,m.player_a,m.player_b,false)}</div></div>`;
     else h+=`<div class="act"><button class="btn" data-openm="${m.id}">Play / enter result</button></div>`;
   }
   if(done&&!m.is_bye&&ADMIN)h+=`<div class="act"><button class="btn" data-clear="${m.id}">Admin: clear result</button></div>`;
@@ -700,7 +756,9 @@ function renderT(){
       h+=`<div class="card"><h2>Group ${String.fromCharCode(64+g)}</h2><div class="tw"><table><tr><th class="l">Player</th><th>P</th><th>W</th><th>L</th><th>+/-</th></tr>${rows.map((x,j)=>`<tr class="${j<2?"q":""}"><td class="l"><b>${esc(x.n)}</b></td><td>${x.P}</td><td>${x.W}</td><td>${x.L}</td><td>${x.LF-x.LA>0?"+":""}${x.LF-x.LA}</td></tr>`).join("")}</table></div>
         <div style="margin-top:6px">${TS.matches.filter(m=>m.stage==="group"&&m.group_no===g).map(m=>matchHTML(t,m)).join("")}</div></div>`});
   }
+  const keep={},openSt=[];body.querySelectorAll("input[id]").forEach(i=>{if(i.value!=="")keep[i.id]=i.value});body.querySelectorAll("details[data-stx][open]").forEach(d=>openSt.push(d.dataset.stx));
   body.innerHTML=h;
+  Object.entries(keep).forEach(([k,v])=>{const el=$(k);if(el)el.value=v});openSt.forEach(x=>{const d=body.querySelector(`details[data-stx="${x}"]`);if(d)d.open=true});
   const eg=$("tEnterGo");if(eg)eg.onclick=async()=>{const n=$("tEnterName").value.trim().replace(/\s+/g," ");if(n.length<2){$("tEnterMsg").textContent="Type your full name.";return}
     const {error}=await db.rpc("lg_t_enter",{p_code:CODE,p_tid:t.id,p_name:n});
     if(error){$("tEnterMsg").textContent=/league code/i.test(error.message)?"The league code has changed. Enter the new one at the top.":error.message;return}await loadT()};
@@ -710,7 +768,8 @@ function renderT(){
   body.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{TS.open=null;renderT()});
   body.querySelectorAll("[data-res]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.res,la=$("ra"+id).value,lb=$("rb"+id).value;
     if(la===""||lb===""){TS.msg="Type both players' legs.";renderT();return}
-    const {error}=await db.rpc("lg_t_submit",{p_code:CODE,p_match:id,p_la:+la,p_lb:+lb,p_sa:{},p_sb:{}});
+    const mm=TS.matches.find(x=>x.id===id),st=readStats("t"+id,la,lb,mm.player_a,mm.player_b);if(st.err){TS.msg="Not saved: "+st.err+".";renderT();return}
+    const {error}=await db.rpc("lg_t_submit",{p_code:CODE,p_match:id,p_la:+la,p_lb:+lb,p_sa:st.sa,p_sb:st.sb});
     TS.msg=error?"Not saved: "+error.message:"";TS.open=null;await loadT()});
   body.querySelectorAll("[data-clear]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Clear this result?";return}
     const {error}=await db.rpc("lg_t_clear_result",{p_pin:ADMIN,p_match:+b.dataset.clear});TS.msg=error?error.message:"";await loadT()});
@@ -740,10 +799,38 @@ $("ncSet").onclick=async()=>{const c=$("ncCode").value.trim();if(c.length<4){$("
 $("npAdd").onclick=async()=>{const n=$("npName").value.trim().replace(/\s+/g," ");if(!n){$("adminMsg").textContent="Type a name.";return}
   const {error}=await db.rpc("lg_admin_add_player",{p_pin:ADMIN,p_name:n,p_division:+$("npDiv").value,p_start:$("npAvg").value===""?null:+$("npAvg").value});
   if(error){$("adminMsg").textContent=error.message;return}$("npName").value="";$("npAvg").value="";$("adminMsg").textContent="Added "+n+".";await loadData()};
-function renderAll(){populateSelects();renderScorer();renderLog();renderLeague();renderPlayers();renderT()}
+function renderHome(){
+  const out=$("homeOut");if(!out)return;
+  if(!loadedOnce){out.innerHTML=`<div class="card"><p class="note">Loading the league…</p></div>`;return}
+  const {list,sts}=aggregate(),ok=sts.filter(x=>x==="OK").length,due=list.reduce((t,a)=>t+a.due,0)/2;
+  const top=(arr,f,n=3)=>arr.slice(0,n).map((a,i)=>`<li><span><span class="r">${i+1}</span>${esc(a.name)}</span><span class="v">${f(a)}</span></li>`).join("")||'<li><span class="note">Nothing yet</span></li>';
+  const lead=[1,2,3].map(d=>{const t=list.filter(a=>a.div===d&&a.key>=0).sort((x,y)=>x.pos-y.pos);
+    return `<div class="card hon"><h2>Division ${d}</h2><ol>${t.slice(0,3).map(a=>`<li><span><span class="r">${a.pos}</span><b>${esc(a.name)}</b>${a.q?' <span class="pill ok">Q</span>':""}</span><span class="note" style="font-variant-numeric:tabular-nums">${a.Pts} pts · ${a.P} pl · <b class="v" style="font-size:18px;color:var(--ink)">${a.PPG.toFixed(2)}</b> PPG</span></li>`).join("")||'<li class="note">No players</li>'}</ol>
+      <p class="note" style="margin:6px 0 0">${t.length} players · <a href="#" data-goto="league">full table</a></p></div>`}).join("");
+  const by180=list.filter(a=>a.b180>0).sort((x,y)=>y.b180-x.b180||x.name.localeCompare(y.name));
+  const byHF=list.filter(a=>a.hf>0).sort((x,y)=>y.hf-x.hf||x.name.localeCompare(y.name));
+  const byAvg=list.filter(a=>a.tda!=null&&a.tdaN>=2).sort((x,y)=>y.tda-x.tda);
+  const byBL=list.filter(a=>a.bl>0).sort((x,y)=>x.bl-y.bl||x.name.localeCompare(y.name));
+  const okRows=S.log.map((r,i)=>({r,i})).filter(x=>sts[x.i]==="OK").slice(-6).reverse();
+  const t=tCur();
+  out.innerHTML=`
+   <div class="card"><h2 style="margin-bottom:2px">This season</h2><p class="note" style="margin:0">${ok} of ${due} league matches played (${due?Math.round(ok/due*100):0}%) · ${list.filter(a=>a.status==="Active").length} players · ${list.reduce((s,a)=>s+a.b180,0)} × 180 so far</p></div>
+   <div class="homegrid">${lead}</div>
+   <div class="homegrid">
+     <div class="card hon"><h2>Highest checkout</h2><ol>${top(byHF,a=>a.hf)}</ol></div>
+     <div class="card hon"><h2>Most 180s</h2><ol>${top(by180,a=>a.b180)}</ol></div>
+     <div class="card hon"><h2>Best average</h2><ol>${top(byAvg,a=>a.tda.toFixed(2))}</ol><p class="note" style="margin:6px 0 0">League 3DA, at least 2 matches with stats.</p></div>
+     <div class="card hon"><h2>Best leg</h2><ol>${top(byBL,a=>a.bl+" darts")}</ol></div>
+   </div>
+   <div class="card res"><h2>Latest results</h2><ol style="list-style:none;margin:0;padding:0">${okRows.map(({r})=>`<li><span>${esc(r.date.slice(8,10)+"/"+r.date.slice(5,7))} · <b>${esc(r.a)}</b> v <b>${esc(r.b)}</b></span><span class="v" style="font-family:var(--display);font-weight:700;font-size:18px">${r.la}-${r.lb}</span></li>`).join("")||'<li class="note">No results yet</li>'}</ol></div>
+   ${t?`<div class="card"><h2>${esc(t.name)}</h2><p class="note" style="margin:0 0 8px">${t.status==="open"?`Entries open: ${TS.entries.length}/32 entered. Put your name down on the Tournaments page.`:t.status==="finished"?`Champion: <b>${esc(t.champion||"")}</b>`:t.status==="groups"?"Group stage under way.":"Knockout under way."}</p><button class="btn" data-goto="tourn">Open tournament</button></div>`:""}`;
+  out.querySelectorAll("[data-goto]").forEach(a=>a.onclick=e=>{e.preventDefault();show(a.dataset.goto)});
+}
+function renderAll(){populateSelects();renderScorer();renderLog();renderLeague();renderPlayers();renderT();renderHome()}
 renderAll();
 renderCode();
 loadData();
+loadT();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&loadedOnce)loadData()});
 })();
 </script>
