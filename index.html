@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2A25">
+<title>Darts League</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+html,body{margin:0}
+[hidden]{display:none!important}
+.err:empty{min-height:0;margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.card,section.view>*{min-width:0}
+img{max-width:100%}
+/* Layout: one narrow phone-width column (max 720px), sticky tab bar, scoreboard-first scorer. */
+:root{
+  --bg:#EEF1EE; --surface:#FFFFFF; --sunk:#F5F7F5; --ink:#15201B; --muted:#5C6A63; --line:#D6DDD8;
+  --head:#1D2A25; --head-ink:#F3F6F4; --accent:#E8532F; --accent-ink:#FFFFFF;
+  --a:#1F5FA8; --a-soft:#DCE8F6; --b:#B8401F; --b-soft:#F8E1D8;
+  --ok:#16733A; --ok-soft:#D3F0DC; --bad:#A3231A; --bad-soft:#F9D6D2; --warn-soft:#FFF1BF;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Barlow",Arial,Helvetica,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18211E; --sunk:#141C19; --ink:#ECF1EE; --muted:#9AA8A1; --line:#2B3833;
+  --head:#0B100E; --head-ink:#ECF1EE; --accent:#FF6A45; --accent-ink:#1A0D08;
+  --a:#7FB2EE; --a-soft:#1C2D42; --b:#FF9873; --b-soft:#3A2219;
+  --ok:#6FD394; --ok-soft:#173523; --bad:#FF8B80; --bad-soft:#3D1B18; --warn-soft:#3A3315; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18211E; --sunk:#141C19; --ink:#ECF1EE; --muted:#9AA8A1; --line:#2B3833;
+  --head:#0B100E; --head-ink:#ECF1EE; --accent:#FF6A45; --accent-ink:#1A0D08;
+  --a:#7FB2EE; --a-soft:#1C2D42; --b:#FF9873; --b-soft:#3A2219;
+  --ok:#6FD394; --ok-soft:#173523; --bad:#FF8B80; --bad-soft:#3D1B18; --warn-soft:#3A3315; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--head);color:var(--head-ink)}
+header.top .in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 0}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.brand h1 span{color:var(--accent)}
+.brand small{font-size:12px;opacity:.75}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:8px;scrollbar-width:none}
+nav.tabs button{flex:1 0 auto;background:none;border:0;color:var(--head-ink);opacity:.7;font:600 14px var(--body);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px;border-bottom:3px solid transparent;cursor:pointer}
+nav.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.view{display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px}
+.note{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label.f{display:grid;gap:3px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;flex:1 1 140px;min-width:0}
+select,input{font:500 15px var(--body);color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:8px 9px;width:100%;min-width:0}
+.btn{font:700 14px var(--body);text-transform:uppercase;letter-spacing:.05em;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);padding:10px 14px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+/* scoreboard */
+.board{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pcard{border-radius:10px;padding:10px 12px;border:2px solid transparent;background:var(--sunk);min-width:0}
+.pcard.A{--c:var(--a);--cs:var(--a-soft)} .pcard.B{--c:var(--b);--cs:var(--b-soft)}
+.pcard.turn{border-color:var(--c);background:var(--cs)}
+.pcard .nm{font-weight:700;color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .big{font-family:var(--display);font-weight:700;font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.pcard .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pcard .legs{font-family:var(--display);font-size:22px;color:var(--c);font-weight:700}
+.legline{font-family:var(--display);font-size:18px;text-transform:uppercase;letter-spacing:.04em;text-align:center;margin:10px 0 6px}
+.entry{display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--display);font-size:44px;font-weight:700;min-height:58px;font-variant-numeric:tabular-nums}
+.entry .ph{color:var(--muted);font-size:20px;font-weight:500}
+.err{color:var(--bad);text-align:center;font-weight:600;min-height:20px;font-size:14px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pad button{font:700 26px var(--display);padding:12px 0;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.pad button.go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.quick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.quick button{font:600 17px var(--display);padding:8px 0;border-radius:7px;border:1px dashed var(--line);background:none;color:var(--ink);cursor:pointer}
+.chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.chips span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+.chips button{min-width:40px;font:700 16px var(--display);padding:6px 10px;border-radius:20px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.checkout{background:var(--ok-soft);border:1px solid var(--ok);border-radius:10px;padding:10px;text-align:center}
+.checkout b{color:var(--ok)}
+/* tables */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+th{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+td.l,th.l{text-align:left}
+tr.q td{background:var(--ok-soft)}
+.visits td{font-family:var(--display);font-size:20px;font-weight:600;padding:3px 6px}
+.visits td.rem{font-weight:700}
+.visits td.bust{color:var(--bad);text-decoration:line-through}
+.visits td.zero{color:var(--ok)}
+.legtabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.legtabs button{font:600 13px var(--body);padding:4px 10px;border-radius:14px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer}
+.legtabs button[aria-pressed="true"]{background:var(--head);color:var(--head-ink);border-color:var(--head)}
+.stats td{font-family:var(--display);font-size:22px;font-weight:700;padding:4px 6px}
+.stats td.lab{font:600 12px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--sunk)}
+.stats td.a{color:var(--a)} .stats td.b{color:var(--b)}
+.pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.divh{font-family:var(--display);font-size:18px;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 4px;color:var(--accent)}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px}
+.banner{background:var(--warn-soft);border-radius:8px;padding:8px 10px;font-size:13px}
+.rules li{margin-bottom:6px}
+.tm{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.tm:last-child{border-bottom:0}
+.tm .who{min-width:0}
+.tm .who div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm .who .w{font-weight:700}
+.tm .sc{font-family:var(--display);font-size:22px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.tm .act{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.tm .act .btn{padding:6px 10px;font-size:12px}
+.tm .act input{width:56px;padding:6px}
+.champ{text-align:center;font-family:var(--display);font-size:28px;font-weight:700;text-transform:uppercase;color:var(--accent)}
+.entries{columns:2;column-gap:16px;padding-left:20px;margin:8px 0}
+.entries li{break-inside:avoid;padding:2px 0}
+@media (max-width:420px){.entries{columns:1}}
+@media (max-width:420px){.pcard .big{font-size:46px}.entry{font-size:38px}}
+@media (prefers-reduced-motion:no-preference){.pcard{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="in">
+  <div class="brand"><h1>Darts <span>League</span></h1><small id="hdrStatus"></small></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-v="scorer" aria-selected="true">Scorer</button>
+    <button role="tab" data-v="log" aria-selected="false">Results Log</button>
+    <button role="tab" data-v="league" aria-selected="false">League</button>
+    <button role="tab" data-v="tourn" aria-selected="false">Tournaments</button>
+    <button role="tab" data-v="players" aria-selected="false">Players</button>
+    <button role="tab" data-v="rules" aria-selected="false">Rules</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px">
+    <span class="note" id="syncNote">Loading league…</span>
+    <span class="row"><button class="btn" id="refreshBtn" style="padding:6px 10px;font-size:12px">Refresh</button><button class="btn" id="adminBtn" style="padding:6px 10px;font-size:12px">Admin</button></span>
+  </div>
+  <div class="card" id="adminBox" hidden style="margin-bottom:12px">
+    <h2>Admin</h2>
+    <div class="row" id="adminLogin"><label class="f">Admin password<input type="password" id="adminPw" autocomplete="current-password"></label><button class="btn primary" id="adminGo">Unlock</button></div>
+    <div id="adminOn" hidden>
+      <p class="note">Admin unlocked on this device until you close the page. You can now change divisions and status on the Players tab, delete log rows, and add players.</p>
+      <div class="row"><label class="f">New player name<input id="npName" maxlength="40"></label><label class="f" style="flex:0 1 80px">Div<select id="npDiv"><option>1</option><option>2</option><option>3</option></select></label><label class="f" style="flex:0 1 100px">Start 3DA<input id="npAvg" type="number" step="0.01" inputmode="decimal"></label><button class="btn primary" id="npAdd">Add player</button></div>
+      <div class="row" style="margin-top:8px"><label class="f">New league join code<input id="ncCode" maxlength="30"></label><button class="btn" id="ncSet">Set join code</button></div>
+      <p class="err" id="adminMsg" style="text-align:left"></p>
+      <button class="btn" id="adminOut">Lock admin</button>
+    </div>
+    <p class="err" id="adminErr" style="text-align:left"></p>
+  </div>
+
+  <!-- SCORER -->
+  <div class="card" id="codeBox" style="margin-bottom:12px"></div>
+  <section class="view" id="v-scorer">
+    <div class="card" id="setup">
+      <h2>New match</h2>
+      <div class="row">
+        <label class="f">Player A<select id="selA"></select></label>
+        <label class="f">Player B<select id="selB"></select></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="f">Throws first in leg 1<select id="selFirst"><option value="A">Player A</option><option value="B">Player B</option></select></label>
+        <label class="f">Date<input type="date" id="matchDate"></label>
+      </div>
+      <p class="err" id="setupErr"></p>
+      <div class="row" style="margin-top:4px">
+        <label class="f">For an online match, I am<select id="selMe"><option value="A">Player A</option><option value="B">Player B</option></select></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="startBtn">Start on this phone</button><button class="btn primary" id="startOnline">Start online match</button></div>
+      <p class="note">Same room: use one phone. Different places: start an online match and send your opponent the 4-letter match code. Best of 8 legs, 501, double out.</p>
+    </div>
+    <div class="card" id="joinCard">
+      <h2>Join an online match</h2>
+      <p class="note" style="margin-top:-4px">Your opponent started the match and sent you a code.</p>
+      <div class="row"><label class="f">Match code<input id="joinCode" maxlength="4" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></label><button class="btn primary" id="joinBtn">Join match</button></div>
+      <p class="err" id="joinErr" style="text-align:left"></p>
+    </div>
+
+    <div id="live" hidden>
+      <div class="card">
+        <div class="board">
+          <div class="pcard A" id="pcA"><div class="nm" id="nmA"></div><div class="big" id="remA">501</div><div class="meta"><span>Legs <span class="legs" id="lgA">0</span></span><span id="avA">3DA –</span></div></div>
+          <div class="pcard B" id="pcB"><div class="nm" id="nmB"></div><div class="big" id="remB">501</div><div class="meta"><span>Legs <span class="legs" id="lgB">0</span></span><span id="avB">3DA –</span></div></div>
+        </div>
+        <div class="legline" id="legLine"></div>
+        <div class="banner" id="liveBanner" hidden style="text-align:center;margin-bottom:8px"></div>
+        <div id="waitArea" hidden class="checkout" style="background:var(--sunk);border-color:var(--line)"><p style="margin:0"><b id="waitText" style="color:var(--ink)"></b></p><p class="note" style="margin:4px 0 0">Their scores appear here automatically.</p></div>
+
+        <div id="inputArea">
+          <div class="entry" id="entry"><span class="ph">Type the 3-dart total</span></div>
+          <div class="err" id="scoreErr" aria-live="polite"></div>
+          <div class="chips" id="dblChips"><span>Darts at a double</span></div>
+          <div class="pad" id="pad"></div>
+          <div class="quick" id="quick"></div>
+        </div>
+        <div id="coArea" hidden class="checkout">
+          <p style="margin:0 0 6px"><b id="coText">Checkout!</b> How many darts on this visit?</p>
+          <div class="chips" style="justify-content:center" id="coChips"></div>
+          <p class="note" style="margin:0">Skip = 3, as in the spreadsheet.</p>
+        </div>
+        <div id="doneArea" hidden class="checkout">
+          <p style="margin:0 0 8px"><b id="doneText"></b></p>
+          <div class="row" style="justify-content:center"><button class="btn primary" id="submitBtn">Submit to Results Log</button></div>
+        </div>
+        <div class="row" style="margin-top:10px;justify-content:space-between">
+          <button class="btn" id="undoBtn">Undo</button>
+          <button class="btn" id="newBtn">New match</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Visits</h2>
+        <div class="legtabs" id="legTabs"></div>
+        <div class="tw"><table class="visits" id="visitTbl"></table></div>
+      </div>
+
+      <div class="card">
+        <h2>Match stats</h2>
+        <div class="tw"><table class="stats" id="statTbl"></table></div>
+        <p class="note">Score bands are exclusive (100+ means 100–119). Busts count as 0. Darts at double and checkout darts left blank count as on the spreadsheet.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="view" id="v-log" hidden>
+    <div class="card">
+      <h2>Quick result entry</h2>
+      <p class="note" style="margin-top:-4px">The winner submits (Player A on a draw). Use this if you scored the match in another app.</p>
+      <div class="row">
+        <label class="f">Date<input type="date" id="qDate"></label>
+        <label class="f">Player A<select id="qA"></select></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="f" style="flex:0 1 90px">Legs A<input type="number" min="0" max="5" id="qLA" inputmode="numeric"></label>
+        <label class="f" style="flex:0 1 90px">Legs B<input type="number" min="0" max="5" id="qLB" inputmode="numeric"></label>
+        <label class="f">Player B<select id="qB"></select></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="qAdd">Add to log</button><span class="note" id="qMsg"></span></div>
+    </div>
+    <div class="card">
+      <h2>Results Log</h2>
+      <div class="tw"><table id="logTbl"></table></div>
+      <p class="note">Rows that aren't OK are ignored by every table. Results that break the rules (wrong score, wrong division, third meeting of a pair) are refused before saving.</p>
+    </div>
+  </section>
+
+  <!-- LEAGUE -->
+  <section class="view" id="v-league" hidden>
+    <div class="card">
+      <h2>League tables</h2>
+      <p class="note" style="margin-top:-4px">Ranked by points per game, then leg difference, then legs won. <b>Q</b> = playoff place: top 2 who have played at least 50% of their fixtures.</p>
+      <div id="leagueOut"></div>
+    </div>
+    <div class="card"><h2>Data checks</h2><div class="tw"><table id="chkTbl"></table></div></div>
+  </section>
+
+  <!-- PLAYERS -->
+  <section class="view" id="v-tourn" hidden>
+    <div class="card" id="tHead"></div>
+    <div class="card" id="tAdmin" hidden></div>
+    <div id="tBody" style="display:grid;gap:14px"></div>
+  </section>
+
+  <section class="view" id="v-players" hidden>
+    <div class="card">
+      <h2>Players</h2>
+      <p class="banner" id="pendNote" hidden></p>
+      <p class="note" style="margin-top:-4px">Division and status are set by you and never reshuffle. Set someone to Withdrawn to see their matches voided. Every stat is calculated from the Results Log by name.</p>
+      <div class="tw"><table id="plTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section class="view" id="v-rules" hidden>
+    <div class="card rules">
+      <h2>Match format</h2>
+      <ul><li>501, straight in, double out. Best of 8 legs: first to 5 wins; 4-4 is a draw.</li>
+      <li>Player A throws first in leg 1 (or throw for bull). The throw alternates every leg.</li>
+      <li>Everyone in a division plays everyone else twice. Win 3 pts, draw 1, loss 0.</li>
+      <li>League runs 26 Oct – 22 Nov 2026.</li></ul>
+      <h2>Submitting</h2>
+      <ul><li>The winner submits, one row per match. On a draw Player A submits.</li>
+      <li>Quick: date, names and legs. Full: score the match on the Scorer and submit the stats line.</li>
+      <li>The Status column must say OK, otherwise the row is ignored.</li></ul>
+      <h2>If matches aren't played</h2>
+      <ul><li>Unplayed matches are void: no points to either player, no penalty.</li>
+      <li>Tables are ranked by points per game, so players who play fewer games aren't punished.</li>
+      <li>To take a playoff place you must play at least 50% of your fixtures. Top 2 qualifiers per division go through.</li>
+      <li>A withdrawn player's matches are all voided and they leave the table.</li></ul>
+          <h2>Tournaments</h2>
+      <ul><li>8 to 32 players. Anyone with the league code can put their name down on the Tournaments page until the admin closes entries.</li>
+      <li>Random draw into groups of 3 or 4. Everyone in a group plays each other once. Ranked by wins, then leg difference, then legs won.</li>
+      <li>Top 2 from each group go into a random knockout draw. Byes go through automatically when numbers don't fill the bracket.</li>
+      <li>The admin sets how many legs to win in the groups, the knockout and the final.</li>
+      <li>Play each match on the live scorer (one phone or online across two) or in any darts app, then tap Play / enter result. Either player can submit; a match can only be submitted once.</li></ul>
+</div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+const WIN=5, DRAW=4, TIMES=2, PW=3, PD=1, PL=0, PLACES=2, MINPCT=0.5, START=501;
+const IMPOSSIBLE=[163,166,169,172,173,175,176,178,179], BOGEY=[159,162,163,165,166,168,169];
+const SB_URL="https://ooiauesumnqcjlulpteb.supabase.co", SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vaWF1ZXN1bW5xY2psdWxwdGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0OTMzMDQsImV4cCI6MjEwODA2OTMwNH0.IJ8ERzNa9UO97qGB_uYIzvY5RU5Nfi5HA3MfMGd5_ck";
+const db=window.supabase.createClient(SB_URL,SB_KEY);
+const MKEY="darts-league-match-v1";
+let S={players:[],log:[],match:null};
+try{const t=localStorage.getItem(MKEY);if(t)S.match=JSON.parse(t)}catch(e){}
+function save(){try{localStorage.setItem(MKEY,JSON.stringify(S.match))}catch(e){}}
+let ADMIN=null, loadedOnce=false, CODE=null, joinOpen=false;
+try{CODE=localStorage.getItem("darts-league-code")}catch(e){}
+function renderCode(){
+  const box=$("codeBox");
+  const joinForm=`<div id="joinForm" ${joinOpen?"":"hidden"} style="margin-top:10px"><p class="note" style="margin:0 0 6px">New to the league? Add yourself. The admin approves you and sets your division.</p>
+    <div class="row"><label class="f">Your full name<input id="jName" maxlength="40" autocomplete="name"></label><label class="f" style="flex:0 1 120px">Your 3-dart avg<input id="jAvg" type="number" step="0.01" inputmode="decimal"></label>
+    ${CODE?"":`<label class="f" style="flex:0 1 140px">League code<input id="jCode" maxlength="30"></label>`}<button class="btn primary" id="jGo">Join</button></div><p class="err" id="jMsg" style="text-align:left"></p></div>`;
+  if(CODE){box.innerHTML=`<div class="row" style="justify-content:space-between"><span class="note">League code saved on this phone. You can submit results.</span><span class="row"><button class="btn" id="joinToggle" style="padding:6px 10px;font-size:12px">Join as new player</button><button class="btn" id="codeForget" style="padding:6px 10px;font-size:12px">Change code</button></span></div>`+joinForm;}
+  else{box.innerHTML=`<h2>League code</h2><p class="note" style="margin-top:-4px">Ask the league admin for the code. You need it once on this phone to submit results or join. Anyone can view the tables without it.</p>
+    <div class="row"><label class="f">League code<input id="codeIn" maxlength="30" autocapitalize="characters"></label><button class="btn primary" id="codeGo">Save code</button><button class="btn" id="joinToggle">Join as new player</button></div><p class="err" id="codeMsg" style="text-align:left"></p>`+joinForm;}
+  const t=$("joinToggle");if(t)t.onclick=()=>{joinOpen=!joinOpen;renderCode()};
+  const f=$("codeForget");if(f)f.onclick=()=>{CODE=null;try{localStorage.removeItem("darts-league-code")}catch(e){}renderCode()};
+  const g=$("codeGo");if(g)g.onclick=async()=>{const c=$("codeIn").value.trim();if(!c)return;
+    const {data,error}=await db.rpc("lg_check_join_code",{p_code:c});
+    if(error||!data){$("codeMsg").textContent="That code isn't right. Check it with the admin.";return}
+    CODE=c;try{localStorage.setItem("darts-league-code",c)}catch(e){}renderCode()};
+  const j=$("jGo");if(j)j.onclick=async()=>{const n=$("jName").value.trim().replace(/\s+/g," "),avg=$("jAvg").value,c=CODE||($("jCode")?$("jCode").value.trim():"");
+    if(n.length<2){$("jMsg").textContent="Type your full name.";return}if(!c){$("jMsg").textContent="Enter the league code.";return}
+    const {error}=await db.rpc("lg_join_league",{p_code:c,p_name:n,p_start:avg===""?null:+avg});
+    if(error){$("jMsg").textContent=error.message.includes("duplicate")?"That name is already in the league.":error.message;return}
+    if(!CODE){CODE=c;try{localStorage.setItem("darts-league-code",c)}catch(e){}}
+    joinOpen=false;renderCode();await loadData();$("syncNote").textContent="Thanks "+n+". You're on the list as Pending until the admin sets your division."};
+}
+async function loadData(){
+  $("syncNote").textContent="Loading league…";
+  const [p,r]=await Promise.all([db.from("lg_players").select("*").order("id"),db.from("lg_results").select("*").order("id")]);
+  if(p.error||r.error){$("syncNote").textContent="Couldn't reach the league database. Check your signal and press Refresh.";return}
+  S.players=p.data.map(x=>({id:x.id,name:x.name,div:x.division,start:+x.start_3da||0,status:x.status}));
+  S.log=r.data.map(x=>({id:x.id,date:x.match_date,a:x.player_a,la:x.legs_a,lb:x.legs_b,b:x.player_b,sub:x.submitted_by,sa:x.stats_a||{},sb:x.stats_b||{},note:x.note}));
+  loadedOnce=true;
+  $("syncNote").textContent="Live league · updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",hour12:false});
+  renderAll();if(!S.match&&!$("selA").value){$("selA").value=""}
+}
+async function addResult(r){
+  // validate exactly as the Status column would, before saving
+  const tmp=S.log.concat([r]);const saved=S.log;S.log=tmp;const sts=statuses();S.log=saved;
+  const stt=sts[sts.length-1];
+  if(stt!=="OK")return "Not saved: "+stt+".";
+  const dup=S.log.some(q=>q.date===r.date&&((q.a===r.a&&q.b===r.b)||(q.a===r.b&&q.b===r.a)));
+  if(dup)return "Not saved: this pair already has a result on "+r.date+". If you really played twice today, ask the admin.";
+  if(!CODE)return "Not saved: enter the league join code at the top of the page first.";
+  const {error}=await db.rpc("lg_submit_result",{p_code:CODE,p_date:r.date,p_a:r.a,p_la:r.la,p_lb:r.lb,p_b:r.b,p_sub:r.sub,p_sa:r.sa,p_sb:r.sb,p_note:r.note});
+  if(error){if(/league code/i.test(error.message)){CODE=null;try{localStorage.removeItem("darts-league-code")}catch(e){}renderCode();return "Not saved: the league code has changed. Enter the new code at the top of the page."}return "Not saved: "+error.message}
+  await loadData();return null;
+}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pl=n=>S.players.find(p=>p.name===n);
+const today=()=>new Date().toISOString().slice(0,10);
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.v)));
+function show(v){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
+  document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);renderAll();window.scrollTo(0,0);if(loadedOnce&&v!=="scorer")loadData();if(v==="tourn")loadT()}
+
+/* ---------- results log logic (mirrors Excel Status column) ---------- */
+function statuses(){const out=[];S.log.forEach((r,i)=>{out.push(status(r,i,out))});return out}
+function status(r,i,prev){
+  if(!pl(r.a))return "Player A not on Players list";
+  if(!pl(r.b))return "Player B not on Players list";
+  if(r.a===r.b)return "Same player twice";
+  if(pl(r.a).div!==pl(r.b).div)return "Players are in different divisions";
+  if(pl(r.a).status!=="Active"||pl(r.b).status!=="Active")return "VOID - player withdrawn";
+  if(r.la===""||r.lb===""||r.la==null||r.lb==null)return "Legs missing";
+  const la=+r.la,lb=+r.lb;
+  if(!((la===WIN&&lb<WIN)||(lb===WIN&&la<WIN)||(DRAW>0&&la===DRAW&&lb===DRAW)))return "Invalid score (first to 5 or 4-4)";
+  let n=1;for(let j=0;j<i;j++){const q=S.log[j];if(prev[j]==="OK"&&((q.a===r.a&&q.b===r.b)||(q.a===r.b&&q.b===r.a)))n++}
+  if(n>TIMES)return "Extra match - pair already played 2x";
+  return "OK";
+}
+function aggregate(){
+  const sts=statuses(),A={};
+  S.players.forEach(p=>A[p.name]={...p,P:0,W:0,D:0,L:0,LF:0,LA:0,tdaS:0,tdaN:0,f9S:0,f9N:0,b180:0,b160:0,b140:0,b120:0,b100:0,b80:0,b60:0,b40:0,hf:0,hs:0,bl:0,co:0,dbl:0});
+  S.log.forEach((r,i)=>{if(sts[i]!=="OK")return;
+    [[r.a,+r.la,+r.lb,r.sa],[r.b,+r.lb,+r.la,r.sb]].forEach(([n,f,g,s])=>{const a=A[n];a.P++;a.LF+=f;a.LA+=g;
+      if(f===WIN)a.W++;else if(f===DRAW&&g===DRAW)a.D++;else a.L++;
+      s=s||{};if(s.tda>0){a.tdaS+=s.tda;a.tdaN++}if(s.f9>0){a.f9S+=s.f9;a.f9N++}
+      ["b180","b160","b140","b120","b100","b80","b60","b40","co","dbl"].forEach(k=>a[k]+=+(s[k]||0));
+      a.hf=Math.max(a.hf,+(s.hf||0));a.hs=Math.max(a.hs,+(s.hs||0));if(s.bl>0)a.bl=a.bl?Math.min(a.bl,s.bl):+s.bl})});
+  const list=Object.values(A);
+  list.forEach((a,idx)=>{a.Pts=a.W*PW+a.D*PD+a.L*PL;a.PPG=a.P?a.Pts/a.P:0;a.LD=a.LF-a.LA;
+    const n=list.filter(b=>b.div===a.div&&b.status==="Active").length;
+    a.due=a.status==="Active"?(n-1)*TIMES:0;a.minq=Math.ceil(a.due*MINPCT);a.elig=a.status==="Active"&&a.P>0&&a.P>=a.minq;
+    a.tda=a.tdaN?a.tdaS/a.tdaN:null;a.f9=a.f9N?a.f9S/a.f9N:null;a.cop=a.dbl?a.co/a.dbl:null;
+    a.key=a.status!=="Active"?-1:Math.round(a.PPG*1000)*1e8+(a.LD+1000)*1e4+a.LF*10+(100-idx)/100});
+  [1,2,3].forEach(d=>{const t=list.filter(a=>a.div===d&&a.key>=0).sort((x,y)=>y.key-x.key);t.forEach((a,i)=>a.pos=i+1);
+    t.filter(a=>a.elig).slice(0,PLACES).forEach(a=>a.q=true)});
+  return {list,sts};
+}
+
+/* ---------- scorer ---------- */
+const M=()=>S.match;
+function curLeg(){return M().legs[M().legs.length-1]}
+function turn(){const L=curLeg();return L.visits.length?(L.visits[L.visits.length-1].p==="A"?"B":"A"):L.starter}
+function leftOf(p,L){const v=L.visits.filter(x=>x.p===p);return v.length?v[v.length-1].left:START}
+function legsWon(p){return M().legs.filter(L=>L.winner===p).length}
+function matchDone(){const a=legsWon("A"),b=legsWon("B"),w=M().win||WIN,d=M().draw??DRAW;return a>=w||b>=w||(d>0&&a===d&&b===d)}
+let typed="", dblSel=null, pendingCo=null, viewLeg=null;
+
+function populateSelects(){
+  const opts='<option value="">Choose…</option>'+[1,2,3].map(d=>`<optgroup label="Division ${d}">`+S.players.filter(p=>p.div===d&&p.status==="Active").map(p=>`<option>${esc(p.name)}</option>`).join("")+"</optgroup>").join("");
+  ["selA","selB","qA","qB"].forEach(id=>{const v=$(id).value;$(id).innerHTML=opts;$(id).value=v});
+}
+$("matchDate").value=today();$("qDate").value=today();
+/* ---------- online (shared) matches ---------- */
+let liveBusy=false, liveMsg="";
+const isLive=()=>!!(M()&&M().live);
+const me=()=>isLive()?M().live.me:null;
+function fromRow(row,meSide){const mt=row.state.meta||{};return {a:row.player_a,b:row.player_b,first:row.first_thrower,date:row.match_date,legs:row.state.legs,submitted:!!row.state.submitted,win:mt.win||WIN,draw:mt.draw??DRAW,tmatch:mt.tmatch||null,tlabel:mt.tlabel||"",live:{code:row.code,me:meSide,version:row.version}}}
+async function pushLive(){
+  const m=M();if(!m||!m.live)return;liveBusy=true;
+  const {data,error}=await db.rpc("lg_live2_update",{p_code:CODE,p_match:m.live.code,p_version:m.live.version,p_state:{legs:m.legs,submitted:m.submitted}});
+  liveBusy=false;
+  if(error){liveMsg=/other phone/.test(error.message)?"The other phone updated first. Showing the latest scores; enter yours again if needed.":"Couldn't send that score ("+error.message+"). Check signal and try again.";await pullLive(true);return}
+  m.live.version=data;liveMsg="";save();renderScorer();
+}
+async function pullLive(force){
+  const m=M();if(!m||!m.live||(liveBusy&&!force))return;
+  const {data,error}=await db.from("lg_live2").select("*").eq("code",m.live.code).maybeSingle();
+  if(error||!data){liveMsg=error?"Connection problem. Retrying…":"This online match no longer exists.";renderScorer();return}
+  if(data.version!==m.live.version||force){const keep=m.live.me;S.match=fromRow(data,keep);if(!pendingCo||pendingCo.p!==keep)pendingCo=null;save();renderScorer()}
+}
+setInterval(()=>{if(isLive()&&document.visibilityState==="visible"&&!$("v-scorer").hidden)pullLive(false)},1500);
+$("startOnline").onclick=async()=>{
+  const a=$("selA").value,b=$("selB").value;$("setupErr").textContent="";
+  if(!CODE){$("setupErr").textContent="Enter the league code at the top of the page first.";return}
+  if(!a||!b){$("setupErr").textContent="Pick both players.";return}
+  if(a===b){$("setupErr").textContent="Pick two different players.";return}
+  if(pl(a).div!==pl(b).div){$("setupErr").textContent=`${a} and ${b} are in different divisions.`;return}
+  $("startOnline").disabled=true;
+  const {data,error}=await db.rpc("lg_live2_create",{p_code:CODE,p_a:a,p_b:b,p_first:$("selFirst").value,p_date:$("matchDate").value||today(),p_side:$("selMe").value,p_meta:{}});
+  $("startOnline").disabled=false;
+  if(error){$("setupErr").textContent="Couldn't start: "+error.message;return}
+  const {data:row}=await db.from("lg_live2").select("*").eq("code",data).maybeSingle();
+  S.match=fromRow(row,$("selMe").value);typed="";dblSel=null;pendingCo=null;viewLeg=null;save();renderScorer();
+};
+$("joinBtn").onclick=async()=>{
+  const c=$("joinCode").value.trim().toUpperCase();$("joinErr").textContent="";
+  if(!CODE){$("joinErr").textContent="Enter the league code at the top of the page first.";return}
+  if(c.length!==4){$("joinErr").textContent="Match codes are 4 characters.";return}
+  const {data,error}=await db.from("lg_live2").select("*").eq("code",c).maybeSingle();
+  if(error||!data){$("joinErr").textContent="No match with that code. Check it with your opponent.";return}
+  S.match=fromRow(data,data.creator_side==="A"?"B":"A");typed="";dblSel=null;pendingCo=null;viewLeg=null;$("joinCode").value="";save();renderScorer();
+};
+$("startBtn").onclick=()=>{liveMsg="";
+  const a=$("selA").value,b=$("selB").value;$("setupErr").textContent="";
+  if(!a||!b){$("setupErr").textContent="Pick both players.";return}
+  if(a===b){$("setupErr").textContent="Pick two different players.";return}
+  if(pl(a).div!==pl(b).div){$("setupErr").textContent=`${a} is in Division ${pl(a).div} and ${b} is in Division ${pl(b).div}. League matches are within a division.`;return}
+  S.match={a,b,first:$("selFirst").value,date:$("matchDate").value||today(),legs:[{starter:$("selFirst").value,visits:[],winner:null}],submitted:false};
+  typed="";dblSel=null;pendingCo=null;viewLeg=null;save();renderScorer();
+};
+$("newBtn").onclick=()=>{if(isLive()&&!matchDone()&&$("newBtn").dataset.armed!=="1"){$("newBtn").dataset.armed="1";$("newBtn").textContent="Leave match?";return}
+  $("newBtn").dataset.armed="";$("newBtn").textContent="New match";S.match=null;save();renderScorer()};
+
+// keypad
+const pad=$("pad");["1","2","3","4","5","6","7","8","9","⌫","0","Enter"].forEach(k=>{const b=document.createElement("button");b.textContent=k;if(k==="Enter")b.className="go";b.onclick=()=>key(k);pad.appendChild(b)});
+[26,41,45,60,81,85,100,121,140,180].forEach(v=>{const b=document.createElement("button");b.textContent=v;b.onclick=()=>{typed=String(v);enter()};$("quick").appendChild(b)});
+const dc=$("dblChips");[["–",null],["0",0],["1",1],["2",2],["3",3]].forEach(([t,v])=>{const b=document.createElement("button");b.textContent=t;b.dataset.v=v===null?"":v;b.onclick=()=>{dblSel=v;renderEntry()};dc.appendChild(b)});
+[1,2,3].forEach(n=>{const b=document.createElement("button");b.textContent=n;b.onclick=()=>finishCo(n);$("coChips").appendChild(b)});
+{const b=document.createElement("button");b.textContent="Skip";b.onclick=()=>finishCo(null);$("coChips").appendChild(b)}
+document.addEventListener("keydown",e=>{if(!M()||$("v-scorer").hidden||matchDone()||pendingCo||(isLive()&&turn()!==me()))return;if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;
+  if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==="Backspace")key("⌫");else if(e.key==="Enter")key("Enter")});
+function key(k){$("scoreErr").textContent="";if(k==="⌫")typed=typed.slice(0,-1);else if(k==="Enter")enter();else if(typed.length<3)typed+=k;renderEntry()}
+function enter(){
+  if(isLive()&&turn()!==me()){typed="";renderEntry();return}
+  if(typed===""){$("scoreErr").textContent="Type a score first (0 for a bust or miss).";return}
+  const s=+typed;
+  if(s>180||IMPOSSIBLE.includes(s)){$("scoreErr").textContent=`${s} can't be scored with 3 darts.`;typed="";renderEntry();return}
+  const p=turn(),L=curLeg(),prev=leftOf(p,L);
+  const bust=s>prev||prev-s===1||(prev===s&&(s>170||BOGEY.includes(s)));
+  if(!bust&&prev-s===0){pendingCo={p,s};typed="";renderScorer();return}
+  L.visits.push({p,score:s,pts:bust?0:s,left:bust?prev:prev-s,bust,dbl:dblSel??0,darts:3,co:false});
+  typed="";dblSel=null;save();renderScorer();if(isLive())pushLive();
+}
+function finishCo(n){
+  const {p,s}=pendingCo,L=curLeg(),c=n||3;
+  L.visits.push({p,score:s,pts:s,left:0,bust:false,dbl:dblSel??c,darts:c,co:true,coSet:n});
+  L.winner=p;pendingCo=null;dblSel=null;
+  if(!matchDone()){const i=M().legs.length;const st=(i%2===0)?M().first:(M().first==="A"?"B":"A");M().legs.push({starter:st,visits:[],winner:null})}
+  viewLeg=null;save();renderScorer();if(isLive())pushLive();
+}
+$("undoBtn").onclick=()=>{if(!M())return;if(pendingCo){pendingCo=null;renderScorer();return}
+  if(isLive()){const legs=M().legs;let L=legs[legs.length-1];if(!L.visits.length&&legs.length>1)L=legs[legs.length-2];
+    const last=L.visits[L.visits.length-1];if(!last){return}
+    if(last.p!==me()){liveMsg="You can only undo your own last score. Ask your opponent to undo theirs.";renderScorer();return}
+    if(M().submitted){liveMsg="This match has already been submitted.";renderScorer();return}}
+  let L=curLeg();if(!L.visits.length&&M().legs.length>1){M().legs.pop();L=curLeg()}
+  if(L.visits.length){L.visits.pop();L.winner=null}M().submitted=false;viewLeg=null;save();renderScorer();if(isLive())pushLive()};
+
+function mstats(p){
+  const r={darts:0,pts:0,f9p:0,f9d:0,dbl:0,co:0,hf:0,hs:0,legs:[],b:{180:0,160:0,140:0,120:0,100:0,80:0,60:0,40:0},any:false};
+  M().legs.forEach(L=>{let n=0,ld=0;L.visits.filter(v=>v.p===p).forEach(v=>{n++;r.any=true;r.darts+=v.darts;r.pts+=v.pts;ld+=v.darts;
+    if(n<=3){r.f9p+=v.pts;r.f9d+=v.darts}r.dbl+=v.dbl;if(v.co){r.co++;r.hf=Math.max(r.hf,v.pts)}r.hs=Math.max(r.hs,v.pts);
+    const x=v.pts;if(x>=180)r.b[180]++;else if(x>=160)r.b[160]++;else if(x>=140)r.b[140]++;else if(x>=120)r.b[120]++;else if(x>=100)r.b[100]++;else if(x>=80)r.b[80]++;else if(x>=60)r.b[60]++;else if(x>=40)r.b[40]++});
+    if(L.winner===p)r.legs.push(ld)});
+  r.tda=r.darts?Math.round(r.pts/r.darts*300)/100:null;r.f9=r.f9d?Math.round(r.f9p/r.f9d*300)/100:null;
+  r.bl=r.legs.length?Math.min(...r.legs):null;r.wl=r.legs.length?Math.max(...r.legs):null;r.cop=r.dbl?r.co/r.dbl:null;return r;
+}
+const f2=v=>v==null?"–":v.toFixed(2), pc=v=>v==null?"–":(v*100).toFixed(2)+"%", dash=v=>v?v:"–";
+
+function renderEntry(){
+  $("entry").innerHTML=typed?esc(typed):'<span class="ph">Type the 3-dart total</span>';
+  dc.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===(dblSel===null?"":String(dblSel)))));
+}
+function renderScorer(){
+  populateSelects();
+  const m=M();$("setup").hidden=!!m;$("joinCard").hidden=!!m;$("live").hidden=!m;if(!m)return;
+  const L=curLeg(),done=matchDone(),t=turn();
+  $("nmA").textContent=m.a;$("nmB").textContent=m.b;
+  ["A","B"].forEach(p=>{$("rem"+p).textContent=leftOf(p,L);$("lg"+p).textContent=legsWon(p);
+    const s=mstats(p);$("av"+p).textContent="3DA "+f2(s.tda);$("pc"+p).classList.toggle("turn",!done&&!pendingCo&&t===p)});
+  const nm=p=>p==="A"?m.a:m.b;
+  const pre=(m.tlabel?m.tlabel+" · ":"")+(m.win&&m.win!==WIN?`First to ${m.win} · `:"");
+  $("legLine").textContent=pre+(done?"Match finished":pendingCo?`Leg ${m.legs.length} · ${nm(pendingCo.p)} checks out ${pendingCo.s}`:`Leg ${m.legs.length} · ${nm(t)} to throw`);
+  const waiting=isLive()&&!done&&!pendingCo&&t!==me();
+  $("inputArea").hidden=done||!!pendingCo||waiting;$("coArea").hidden=!pendingCo;$("doneArea").hidden=!done;$("waitArea").hidden=!waiting;
+  if(waiting)$("waitText").textContent=`Waiting for ${nm(t)} to throw…`;
+  $("liveBanner").hidden=!isLive();
+  if(isLive())$("liveBanner").innerHTML=`Online match · code <b style="letter-spacing:.15em;font-size:17px">${esc(m.live.code)}</b> · you are <b>${esc(nm(me()))}</b>${liveMsg?`<br><span style="color:var(--bad)">${esc(liveMsg)}</span>`:""}`;
+  if(pendingCo)$("coText").textContent=`${nm(pendingCo.p)} checks out ${pendingCo.s}!`;
+  if(done){const a=legsWon("A"),b=legsWon("B");const w=a===b?null:(a>b?m.a:m.b);
+    $("doneText").textContent=w?`${w} wins ${Math.max(a,b)}-${Math.min(a,b)}.`+(m.tmatch?" Either player can submit.":` ${w} submits.`):`Draw ${a}-${b}. ${m.a} submits.`;
+    $("submitBtn").disabled=m.submitted;$("submitBtn").textContent=m.submitted?"Submitted":"Submit to Results Log"}
+  renderEntry();
+  // leg tabs + visits
+  const vl=viewLeg??m.legs.length-1;
+  $("legTabs").innerHTML=m.legs.map((Lg,i)=>`<button aria-pressed="${i===vl}" data-i="${i}">Leg ${i+1}${Lg.winner?" ✓":""}</button>`).join("");
+  $("legTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{viewLeg=+b.dataset.i;renderScorer()});
+  const LL=m.legs[vl],va=LL.visits.filter(v=>v.p==="A"),vb=LL.visits.filter(v=>v.p==="B"),n=Math.max(va.length,vb.length);
+  let h=`<tr><th colspan="3" style="color:var(--a)">${esc(m.a)}</th><th colspan="3" style="color:var(--b)">${esc(m.b)}</th></tr><tr><th>Left</th><th>Score</th><th>Dbl</th><th>Left</th><th>Score</th><th>Dbl</th></tr>`;
+  const cell=v=>v?`<td class="rem ${v.left===0?"zero":""}">${v.left}</td><td class="${v.bust?"bust":""}">${v.score}</td><td style="font-size:14px;color:var(--muted)">${v.dbl||""}</td>`:"<td></td><td></td><td></td>";
+  h+=`<tr><td class="rem">501</td><td></td><td></td><td class="rem">501</td><td></td><td></td></tr>`;
+  for(let i=0;i<n;i++)h+=`<tr>${cell(va[i])}${cell(vb[i])}</tr>`;
+  $("visitTbl").innerHTML=h;
+  // stats
+  const A=mstats("A"),B=mstats("B");
+  const rows=[["3-dart average",f2(A.tda),f2(B.tda)],["First 9 avg.",f2(A.f9),f2(B.f9)],["Checkout rate",pc(A.cop),pc(B.cop)],["Checkouts",A.co+"/"+A.dbl,B.co+"/"+B.dbl],
+    ["Highest finish",dash(A.hf),dash(B.hf)],["Highest score",A.any?A.hs:"–",B.any?B.hs:"–"],["Best leg",A.bl?A.bl+" darts":"–",B.bl?B.bl+" darts":"–"],["Worst leg",A.wl?A.wl+" darts":"–",B.wl?B.wl+" darts":"–"],
+    ...[180,160,140,120,100,80,60,40].map(k=>[k===180?"180":k+"+",A.b[k],B.b[k]]),["Darts thrown",A.darts,B.darts]];
+  $("statTbl").innerHTML=`<tr><th style="color:var(--a)">${esc(m.a)}</th><th></th><th style="color:var(--b)">${esc(m.b)}</th></tr>`+rows.map(r=>`<tr><td class="a">${r[1]}</td><td class="lab">${r[0]}</td><td class="b">${r[2]}</td></tr>`).join("");
+}
+$("submitBtn").onclick=()=>{const m=M();if(!m||!matchDone()||m.submitted)return;
+  const pack=s=>({tda:s.tda,f9:s.f9,b180:s.b[180],b160:s.b[160],b140:s.b[140],b120:s.b[120],b100:s.b[100],b80:s.b[80],b60:s.b[60],b40:s.b[40],hf:s.hf||null,hs:s.hs||null,bl:s.bl,co:s.co,dbl:s.dbl});
+  const a=legsWon("A"),b=legsWon("B");
+  $("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";
+  if(m.tmatch){db.rpc("lg_t_submit",{p_code:CODE,p_match:m.tmatch,p_la:a,p_lb:b,p_sa:pack(mstats("A")),p_sb:pack(mstats("B"))}).then(async({error})=>{
+      if(error&&!/already has a result/.test(error.message)){$("doneText").textContent="Not saved: "+error.message;$("submitBtn").disabled=false;$("submitBtn").textContent="Try again";return}
+      m.submitted=true;save();if(m.live)pushLive();await loadT();show("tourn")});return}
+  addResult({date:m.date,a:m.a,la:a,lb:b,b:m.b,sub:a>=b?m.a:m.b,sa:pack(mstats("A")),sb:pack(mstats("B")),note:"From scorer"}).then(err=>{
+    if(err){$("doneText").textContent=err;$("submitBtn").disabled=false;$("submitBtn").textContent="Try again";return}
+    m.submitted=true;save();if(m.live)pushLive();show("log")})};
+
+/* ---------- log view ---------- */
+$("qAdd").onclick=()=>{const r={date:$("qDate").value||today(),a:$("qA").value,la:$("qLA").value===""?"":+$("qLA").value,lb:$("qLB").value===""?"":+$("qLB").value,b:$("qB").value,note:"Quick entry",sa:{},sb:{}};
+  if(!r.a||!r.b){$("qMsg").textContent="Pick both players.";return}
+  r.sub=r.la>=r.lb?r.a:r.b;$("qMsg").textContent="Saving…";$("qAdd").disabled=true;
+  addResult(r).then(err=>{$("qAdd").disabled=false;$("qMsg").textContent=err||"Saved. Tables updated.";if(!err){$("qLA").value="";$("qLB").value=""}})};
+function renderLog(){
+  const sts=statuses();
+  let h=`<tr><th>Date</th><th class="l">Player A</th><th>Legs</th><th class="l">Player B</th><th>A 3DA</th><th>B 3DA</th><th class="l">Status</th><th></th></tr>`;
+  S.log.forEach((r,i)=>{const okk=sts[i]==="OK";
+    h+=`<tr><td>${esc(r.date.slice(8,10)+"/"+r.date.slice(5,7))}</td><td class="l">${esc(r.a)}</td><td><b>${esc(r.la)}-${esc(r.lb)}</b></td><td class="l">${esc(r.b)}</td><td>${r.sa&&r.sa.tda?r.sa.tda.toFixed(2):"–"}</td><td>${r.sb&&r.sb.tda?r.sb.tda.toFixed(2):"–"}</td><td class="l"><span class="pill ${okk?"ok":"bad"}">${esc(sts[i])}</span></td><td>${ADMIN?`<button class="x" aria-label="Delete row" data-id="${r.id}">×</button>`:""}</td></tr>`});
+  $("logTbl").innerHTML=h;$("logTbl").querySelectorAll("button.x").forEach(b=>b.onclick=async()=>{
+    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Delete?";b.style.color="var(--bad)";return}
+    const {error}=await db.rpc("lg_admin_delete_result",{p_pin:ADMIN,p_id:+b.dataset.id});if(error){alertMsg(error.message);return}await loadData()});
+}
+
+/* ---------- league + checks ---------- */
+function renderLeague(){
+  const {list,sts}=aggregate();
+  $("leagueOut").innerHTML=[1,2,3].map(d=>{const t=list.filter(a=>a.div===d&&a.key>=0).sort((x,y)=>x.pos-y.pos);
+    return `<div class="divh">Division ${d}</div><div class="tw"><table><tr><th>Pos</th><th class="l">Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th><th>PPG</th><th>Played</th><th>Q</th></tr>`+
+    t.map(a=>`<tr class="${a.q?"q":""}"><td>${a.pos}</td><td class="l"><b>${esc(a.name)}</b></td><td>${a.P}</td><td>${a.W}</td><td>${a.D}</td><td>${a.L}</td><td>${a.LD>0?"+":""}${a.LD}</td><td><b>${a.Pts}</b></td><td>${a.PPG.toFixed(2)}</td><td>${a.P}/${a.due}</td><td>${a.q?"Q":""}</td></tr>`).join("")+"</table></div>"}).join("");
+  const ok=sts.filter(s=>s==="OK").length,okRows=S.log.filter((r,i)=>sts[i]==="OK");
+  const sum=k=>list.reduce((s,a)=>s+a[k],0),dr=okRows.filter(r=>+r.la===DRAW&&+r.lb===DRAW).length;
+  const ls=(k)=>okRows.reduce((s,r)=>s+(+(r.sa&&r.sa[k])||0)+(+(r.sb&&r.sb[k])||0),0);
+  const C=[["Matches played × 2 = total P",sum("P"),ok*2],["Wins = decisive matches",sum("W"),ok-dr],["Draws = drawn matches × 2",sum("D"),dr*2],["Legs for = legs in log",sum("LF"),okRows.reduce((s,r)=>s+ +r.la+ +r.lb,0)],["Legs against = legs for",sum("LA"),sum("LF")],
+    ["180 total",sum("b180"),ls("b180")],["100+ total",sum("b100"),ls("b100")],["Checkouts hit",sum("co"),ls("co")],["Darts at double",sum("dbl"),ls("dbl")]];
+  const all=C.every(c=>c[1]===c[2]);
+  $("chkTbl").innerHTML=`<tr><th class="l">Check</th><th>Players</th><th>Log</th><th></th></tr>`+C.map(c=>`<tr><td class="l">${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td><span class="pill ${c[1]===c[2]?"ok":"bad"}">${c[1]===c[2]?"OK":"CHECK"}</span></td></tr>`).join("")+
+    `<tr><td class="l"><b>Overall</b></td><td></td><td></td><td><span class="pill ${all?"ok":"bad"}">${all?"ALL OK":"CHECK"}</span></td></tr>`;
+  const due=list.reduce((s,a)=>s+a.due,0)/2;
+  $("hdrStatus").textContent=`${ok} of ${due} fixtures played · checks ${all?"OK":"CHECK"}`;
+}
+
+/* ---------- players ---------- */
+function renderPlayers(){
+  const {list}=aggregate();
+  let h=`<tr><th class="l">Name</th><th>Div</th><th>Status</th><th>Start 3DA</th><th>P</th><th>W-D-L</th><th>Pts</th><th>PPG</th><th>Elig.</th><th>League 3DA</th><th>180</th><th>140+</th><th>120+</th><th>100+</th><th>High fin.</th><th>Best leg</th><th>CO</th><th>CO %</th></tr>`;
+  list.forEach((a,i)=>{h+=`<tr><td class="l"><b>${esc(a.name)}</b></td><td>${ADMIN?"":(a.div||"–")}<select ${ADMIN?"":"hidden"} data-i="${i}" data-k="div" aria-label="Division for ${esc(a.name)}" style="padding:3px;width:auto">${a.div?"":`<option selected value="">–</option>`}${[1,2,3].map(d=>`<option ${d===a.div?"selected":""}>${d}</option>`).join("")}</select></td>
+    <td>${ADMIN?"":a.status}<select ${ADMIN?"":"hidden"} data-i="${i}" data-k="status" aria-label="Status for ${esc(a.name)}" style="padding:3px;width:auto">${["Pending","Active","Withdrawn"].map(s=>`<option ${s===a.status?"selected":""}>${s}</option>`).join("")}</select></td>
+    <td>${a.start.toFixed(2)}</td><td>${a.P}</td><td>${a.W}-${a.D}-${a.L}</td><td>${a.Pts}</td><td>${a.PPG.toFixed(2)}</td><td>${a.status!=="Active"?"–":a.elig?"Yes":`${a.P}/${a.minq}`}</td><td>${f2(a.tda)}</td><td>${a.b180}</td><td>${a.b140}</td><td>${a.b120}</td><td>${a.b100}</td><td>${dash(a.hf)}</td><td>${dash(a.bl)}</td><td>${a.co}/${a.dbl}</td><td>${a.cop==null?"–":(a.cop*100).toFixed(1)+"%"}</td></tr>`});
+  $("plTbl").innerHTML=h;
+  const pend=S.players.filter(p=>p.status==="Pending");$("pendNote").hidden=!pend.length;
+  $("pendNote").textContent=pend.length?`${pend.length} waiting for approval: ${pend.map(p=>p.name).join(", ")}. Admin: pick their division below to approve.`:"";
+  $("plTbl").querySelectorAll("select").forEach(s=>s.onchange=async()=>{const p=S.players[+s.dataset.i];
+    const div=s.dataset.k==="div"?(s.value===""?null:+s.value):p.div; let status=s.dataset.k==="status"?s.value:p.status;
+    if(s.dataset.k==="div"&&status==="Pending"&&div)status="Active";
+    if(status==="Active"&&!div){alertMsg("Pick a division before making a player Active.");renderPlayers();return}
+    const {error}=await db.rpc("lg_admin_update_player",{p_pin:ADMIN,p_id:p.id,p_division:div,p_status:status});
+    if(error){alertMsg(error.message);return}await loadData()});
+}
+
+/* ---------- tournaments ---------- */
+const TS={list:[],cur:null,entries:[],matches:[],open:null,msg:""};
+try{TS.cur=+localStorage.getItem("darts-t-cur")||null}catch(e){}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const tCur=()=>TS.list.find(t=>t.id===TS.cur);
+async function loadT(){
+  const l=await db.from("lg_tournaments").select("*").order("id",{ascending:false});
+  if(l.error){TS.msg="Couldn't load tournaments. Press Refresh.";renderT();return}
+  TS.list=l.data;if(!tCur())TS.cur=(TS.list.find(t=>t.status!=="finished")||TS.list[0]||{}).id||null;
+  if(TS.cur){const [e,m]=await Promise.all([db.from("lg_t_entries").select("*").eq("tournament_id",TS.cur).order("id"),db.from("lg_t_matches").select("*").eq("tournament_id",TS.cur).order("id")]);
+    TS.entries=(e.data||[]).filter(x=>!x.removed);TS.matches=m.data||[]}else{TS.entries=[];TS.matches=[]}
+  renderT();
+}
+function target(t,m){return m.stage==="group"?t.legs_group:(m.round_no===t.ko_rounds?t.legs_final:t.legs_ko)}
+const roundName=(t,r)=>({2:"Final",4:"Semi-finals",8:"Quarter-finals",16:"Last 16",32:"Last 32"})[Math.pow(2,t.ko_rounds-r+1)];
+function groupTable(t,g){
+  const names=(t.groups||[])[g-1]||[],rows=names.map(n=>({n,P:0,W:0,L:0,LF:0,LA:0}));const R=n=>rows.find(x=>x.n===n);
+  TS.matches.filter(m=>m.stage==="group"&&m.group_no===g&&m.winner).forEach(m=>{const a=R(m.player_a),b=R(m.player_b);a.P++;b.P++;a.LF+=m.legs_a;a.LA+=m.legs_b;b.LF+=m.legs_b;b.LA+=m.legs_a;(m.winner===m.player_a?a:b).W++;(m.winner===m.player_a?b:a).L++});
+  return rows.sort((x,y)=>y.W-x.W||(y.LF-y.LA)-(x.LF-x.LA)||y.LF-x.LF||x.n.localeCompare(y.n));
+}
+function matchHTML(t,m,label){
+  const tg=target(t,m),done=!!m.winner,ready=m.player_a&&m.player_b&&!done&&!m.is_bye;
+  const nm=x=>x?esc(x):'<span class="note">to be decided</span>';
+  const live=(t.status==="groups"&&m.stage==="group")||(t.status==="knockout"&&m.stage==="ko");
+  let h=`<div class="tm"><div class="who"><div class="${m.winner&&m.winner===m.player_a?"w":""}">${nm(m.player_a)}</div><div class="${m.winner&&m.winner===m.player_b?"w":""}">${m.is_bye&&!m.player_b?'<span class="note">bye</span>':nm(m.player_b)}</div></div>
+    <div class="sc">${m.is_bye?'<span class="note" style="font-size:13px">bye</span>':done?`${m.legs_a}<br>${m.legs_b}`:`<span class="note" style="font-size:12px">first to ${tg}</span>`}</div>`;
+  if(ready&&live){
+    if(TS.open===m.id)h+=`<div class="act"><button class="btn primary" data-sc="phone" data-id="${m.id}">Score on this phone</button><button class="btn" data-sc="A" data-id="${m.id}">Online, I'm ${esc(m.player_a.split(" ")[0])}</button><button class="btn" data-sc="B" data-id="${m.id}">Online, I'm ${esc(m.player_b.split(" ")[0])}</button>
+      <span class="row" style="gap:4px"><input type="number" min="0" max="${tg}" inputmode="numeric" id="ra${m.id}" aria-label="Legs ${esc(m.player_a)}">–<input type="number" min="0" max="${tg}" inputmode="numeric" id="rb${m.id}" aria-label="Legs ${esc(m.player_b)}"><button class="btn" data-res="${m.id}">Save app result</button></span><button class="btn" data-close="1">Close</button></div>`;
+    else h+=`<div class="act"><button class="btn" data-openm="${m.id}">Play / enter result</button></div>`;
+  }
+  if(done&&!m.is_bye&&ADMIN)h+=`<div class="act"><button class="btn" data-clear="${m.id}">Admin: clear result</button></div>`;
+  return h+"</div>";
+}
+function renderT(){
+  const head=$("tHead");if(!head)return;const t=tCur();
+  const pick=TS.list.length>1?`<label class="f" style="margin-bottom:8px">Tournament<select id="tPick">${TS.list.map(x=>`<option value="${x.id}" ${x.id===TS.cur?"selected":""}>${esc(x.name)}${x.status==="finished"?" (finished)":""}</option>`).join("")}</select></label>`:"";
+  const stTxt={open:"Entries open",groups:"Group stage",knockout:"Knockout",finished:"Finished"};
+  head.innerHTML=t?`${pick}<h2 style="margin-bottom:4px">${esc(t.name)}</h2><p class="note" style="margin:0"><span class="pill ${t.status==="finished"?"ok":"bad"}" style="background:var(--warn-soft);color:var(--ink)">${stTxt[t.status]}</span> · Groups first to ${t.legs_group} · Knockout first to ${t.legs_ko} · Final first to ${t.legs_final} · 8–32 players</p>${TS.msg?`<p class="err" style="text-align:left">${esc(TS.msg)}</p>`:""}`
+    :`<h2>Tournaments</h2><p class="note">No tournaments yet. The admin creates one, then players put their names down here.</p>${TS.msg?`<p class="err" style="text-align:left">${esc(TS.msg)}</p>`:""}`;
+  const tp=$("tPick");if(tp)tp.onchange=()=>{TS.cur=+tp.value;try{localStorage.setItem("darts-t-cur",TS.cur)}catch(e){}TS.open=null;loadT()};
+  // admin card
+  const ad=$("tAdmin");ad.hidden=!ADMIN;
+  if(ADMIN){let h=`<h2>Tournament admin</h2>`;
+    if(t&&t.status==="open")h+=`<p class="note">${TS.entries.length} entered. You need 8–32 to draw the groups. Groups of 3–4, top 2 from each group go into a random knockout draw.</p><button class="btn primary" id="tDrawG" ${TS.entries.length<8?"disabled":""}>Close entries &amp; draw groups</button>`;
+    if(t&&t.status==="groups"){const left=TS.matches.filter(m=>m.stage==="group"&&!m.winner).length;h+=`<p class="note">${left?`${left} group match${left>1?"es":""} not played yet. Unplayed matches count as not played when you draw the knockout.`:"All group matches played."}</p><button class="btn primary" id="tDrawK">Draw knockout (top 2 per group)</button>`}
+    h+=`<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Create a new tournament</summary><div class="row" style="margin-top:8px"><label class="f">Name<input id="tnName" maxlength="60" placeholder="e.g. Christmas Cup 2026"></label></div>
+      <div class="row" style="margin-top:8px"><label class="f">Groups: first to<input id="tnG" type="number" min="1" max="11" value="3" inputmode="numeric"></label><label class="f">Knockout: first to<input id="tnK" type="number" min="1" max="11" value="4" inputmode="numeric"></label><label class="f">Final: first to<input id="tnF" type="number" min="1" max="11" value="5" inputmode="numeric"></label></div>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="tnGo">Create tournament</button></div></details><p class="err" id="tAdMsg" style="text-align:left"></p>`;
+    ad.innerHTML=h;
+    const g=$("tDrawG");if(g)g.onclick=async()=>{if(g.dataset.armed!=="1"){g.dataset.armed="1";g.textContent="Sure? Entries will close";return}
+      const names=shuffle(TS.entries.map(e=>e.name)),G=Math.ceil(names.length/4),groups=Array.from({length:G},()=>[]);names.forEach((n,i)=>groups[i%G].push(n));
+      const {error}=await db.rpc("lg_t_start_groups",{p_pin:ADMIN,p_tid:t.id,p_groups:groups});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
+    const k=$("tDrawK");if(k)k.onclick=async()=>{if(k.dataset.armed!=="1"){k.dataset.armed="1";k.textContent="Sure? Group stage will close";return}
+      const q=[];(t.groups||[]).forEach((_,i)=>groupTable(t,i+1).slice(0,2).forEach(r=>q.push(r.n)));
+      let size=2;while(size<q.length)size*=2;const byes=size-q.length,sh=shuffle(q),pairs=[];
+      for(let i=0;i<byes;i++)pairs.push([sh[i],null]);for(let i=byes;i<sh.length;i+=2)pairs.push([sh[i],sh[i+1]]);
+      const {error}=await db.rpc("lg_t_start_knockout",{p_pin:ADMIN,p_tid:t.id,p_pairs:shuffle(pairs)});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
+    $("tnGo").onclick=async()=>{const n=$("tnName").value.trim();if(n.length<3){$("tAdMsg").textContent="Give the tournament a name.";return}
+      const {data,error}=await db.rpc("lg_t_create",{p_pin:ADMIN,p_name:n,p_lg:+$("tnG").value,p_lko:+$("tnK").value,p_lf:+$("tnF").value});
+      if(error){$("tAdMsg").textContent=error.message;return}TS.cur=data;try{localStorage.setItem("darts-t-cur",data)}catch(e){}await loadT()};
+  }
+  // body
+  const body=$("tBody");if(!t){body.innerHTML="";return}
+  let h="";
+  if(t.status==="finished")h+=`<div class="card"><p class="note" style="text-align:center;margin:0">Champion</p><div class="champ">${esc(t.champion||"")}</div></div>`;
+  if(t.status==="open"){
+    h+=`<div class="card"><h2>Put your name down</h2>${CODE?`<p class="note" style="margin-top:-4px">League players: pick your name. Anyone else: type your full name.</p>
+      <div class="row"><label class="f">Your name<input id="tEnterName" list="tNames" maxlength="40" autocomplete="name"></label><button class="btn primary" id="tEnterGo">Enter</button></div><datalist id="tNames">${S.players.filter(p=>p.status==="Active").map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist><p class="err" id="tEnterMsg" style="text-align:left"></p>`
+      :`<p class="note">Enter the league code at the top of the page first, then you can put your name down.</p>`}
+      <h2 style="margin-top:14px">Entered (${TS.entries.length}/32)</h2>${TS.entries.length?`<ol class="entries">${TS.entries.map(e=>`<li>${esc(e.name)}${ADMIN?` <button class="x" data-rm="${e.id}" aria-label="Remove ${esc(e.name)}">×</button>`:""}</li>`).join("")}</ol>`:'<p class="note">Nobody yet.</p>'}
+      ${TS.entries.length<8?`<p class="note">${8-TS.entries.length} more needed before the draw.</p>`:""}</div>`;
+  }
+  if(t.status==="knockout"||t.status==="finished"){
+    for(let r=t.ko_rounds;r>=1;r--){const ms=TS.matches.filter(m=>m.stage==="ko"&&m.round_no===r).sort((a,b)=>a.slot-b.slot);
+      h+=`<div class="card"><h2>${roundName(t,r)}</h2>${ms.map(m=>matchHTML(t,m)).join("")}</div>`}
+  }
+  if(t.status!=="open"&&t.groups){
+    t.groups.forEach((_,i)=>{const g=i+1,rows=groupTable(t,g);
+      h+=`<div class="card"><h2>Group ${String.fromCharCode(64+g)}</h2><div class="tw"><table><tr><th class="l">Player</th><th>P</th><th>W</th><th>L</th><th>+/-</th></tr>${rows.map((x,j)=>`<tr class="${j<2?"q":""}"><td class="l"><b>${esc(x.n)}</b></td><td>${x.P}</td><td>${x.W}</td><td>${x.L}</td><td>${x.LF-x.LA>0?"+":""}${x.LF-x.LA}</td></tr>`).join("")}</table></div>
+        <div style="margin-top:6px">${TS.matches.filter(m=>m.stage==="group"&&m.group_no===g).map(m=>matchHTML(t,m)).join("")}</div></div>`});
+  }
+  body.innerHTML=h;
+  const eg=$("tEnterGo");if(eg)eg.onclick=async()=>{const n=$("tEnterName").value.trim().replace(/\s+/g," ");if(n.length<2){$("tEnterMsg").textContent="Type your full name.";return}
+    const {error}=await db.rpc("lg_t_enter",{p_code:CODE,p_tid:t.id,p_name:n});
+    if(error){$("tEnterMsg").textContent=/league code/i.test(error.message)?"The league code has changed. Enter the new one at the top.":error.message;return}await loadT()};
+  body.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Remove?";return}
+    const {error}=await db.rpc("lg_t_remove_entry",{p_pin:ADMIN,p_entry:+b.dataset.rm});if(error)TS.msg=error.message;await loadT()});
+  body.querySelectorAll("[data-openm]").forEach(b=>b.onclick=()=>{if(!CODE){TS.msg="Enter the league code at the top of the page first.";renderT();return}TS.open=+b.dataset.openm;renderT()});
+  body.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{TS.open=null;renderT()});
+  body.querySelectorAll("[data-res]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.res,la=$("ra"+id).value,lb=$("rb"+id).value;
+    if(la===""||lb===""){TS.msg="Type both players' legs.";renderT();return}
+    const {error}=await db.rpc("lg_t_submit",{p_code:CODE,p_match:id,p_la:+la,p_lb:+lb,p_sa:{},p_sb:{}});
+    TS.msg=error?"Not saved: "+error.message:"";TS.open=null;await loadT()});
+  body.querySelectorAll("[data-clear]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Clear this result?";return}
+    const {error}=await db.rpc("lg_t_clear_result",{p_pin:ADMIN,p_match:+b.dataset.clear});TS.msg=error?error.message:"";await loadT()});
+  body.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>startTMatch(+b.dataset.id,b.dataset.sc));
+}
+async function startTMatch(id,mode){
+  const t=tCur(),m=TS.matches.find(x=>x.id===id);if(!t||!m)return;
+  const label=m.stage==="group"?`${t.name} · Group ${String.fromCharCode(64+m.group_no)}`:`${t.name} · ${roundName(t,m.round_no)}`;
+  const base={a:m.player_a,b:m.player_b,first:"A",date:today(),legs:[{starter:"A",visits:[],winner:null}],submitted:false,win:target(t,m),draw:0,tmatch:m.id,tlabel:label};
+  if(mode==="phone"){S.match=base;}
+  else{const {data,error}=await db.rpc("lg_live2_create",{p_code:CODE,p_a:m.player_a,p_b:m.player_b,p_first:"A",p_date:today(),p_side:mode,p_meta:{win:base.win,draw:0,tmatch:m.id,tlabel:label}});
+    if(error){TS.msg="Couldn't start: "+error.message;renderT();return}
+    const {data:row}=await db.from("lg_live2").select("*").eq("code",data).maybeSingle();S.match=fromRow(row,mode);}
+  typed="";dblSel=null;pendingCo=null;viewLeg=null;liveMsg="";save();TS.open=null;show("scorer");
+}
+function alertMsg(t){$("adminMsg").textContent=t;$("adminBox").hidden=false}
+$("refreshBtn").onclick=()=>{loadData();loadT()};
+$("adminBtn").onclick=()=>{$("adminBox").hidden=!$("adminBox").hidden};
+$("adminGo").onclick=async()=>{$("adminErr").textContent="";const pw=$("adminPw").value;
+  const {data,error}=await db.rpc("lg_admin_check",{p_pin:pw});
+  if(error||!data){$("adminErr").textContent="Wrong password.";return}
+  ADMIN=pw;$("adminPw").value="";$("adminLogin").hidden=true;$("adminOn").hidden=false;renderAll()};
+$("adminOut").onclick=()=>{ADMIN=null;$("adminLogin").hidden=false;$("adminOn").hidden=true;$("adminMsg").textContent="";renderAll()};
+$("ncSet").onclick=async()=>{const c=$("ncCode").value.trim();if(c.length<4){$("adminMsg").textContent="Join code must be at least 4 characters.";return}
+  const {error}=await db.rpc("lg_admin_set_join_code",{p_pin:ADMIN,p_code:c});if(error){$("adminMsg").textContent=error.message;return}
+  $("ncCode").value="";$("adminMsg").textContent="Join code changed. Phones with the old code will be asked for the new one when they next submit.";};
+$("npAdd").onclick=async()=>{const n=$("npName").value.trim().replace(/\s+/g," ");if(!n){$("adminMsg").textContent="Type a name.";return}
+  const {error}=await db.rpc("lg_admin_add_player",{p_pin:ADMIN,p_name:n,p_division:+$("npDiv").value,p_start:$("npAvg").value===""?null:+$("npAvg").value});
+  if(error){$("adminMsg").textContent=error.message;return}$("npName").value="";$("npAvg").value="";$("adminMsg").textContent="Added "+n+".";await loadData()};
+function renderAll(){populateSelects();renderScorer();renderLog();renderLeague();renderPlayers();renderT()}
+renderAll();
+renderCode();
+loadData();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&loadedOnce)loadData()});
+})();
+</script>
+</body>
+</html>
