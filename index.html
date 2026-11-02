@@ -147,8 +147,10 @@ details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
     <button role="tab" data-v="scorer" aria-selected="false">Scorer</button>
     <button role="tab" data-v="log" aria-selected="false">Results Log</button>
     <button role="tab" data-v="league" aria-selected="false">League</button>
+    <button role="tab" data-v="mine" aria-selected="false">My matches</button>
     <button role="tab" data-v="tourn" aria-selected="false">Tournaments</button>
     <button role="tab" data-v="players" aria-selected="false">Players</button>
+    <button role="tab" data-v="admin" aria-selected="false" id="adminTab" hidden>Admin log</button>
     <button role="tab" data-v="rules" aria-selected="false">Rules</button>
   </nav>
 </div></header>
@@ -156,15 +158,24 @@ details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
 <main class="wrap">
   <div class="row" style="justify-content:space-between;margin-bottom:10px">
     <span class="note" id="syncNote">Loading league…</span>
-    <span class="row"><button class="btn" id="refreshBtn" style="padding:6px 10px;font-size:12px">Refresh</button><button class="btn" id="adminBtn" style="padding:6px 10px;font-size:12px">Admin</button></span>
+    <span class="row"><a class="btn" href="https://discord.gg/Zhf9rNb7h" target="_blank" rel="noopener" style="padding:6px 10px;font-size:12px;text-decoration:none">Discord</a><button class="btn" id="refreshBtn" style="padding:6px 10px;font-size:12px">Refresh</button><button class="btn" id="adminBtn" style="padding:6px 10px;font-size:12px">Admin</button></span>
   </div>
   <div class="card" id="adminBox" hidden style="margin-bottom:12px">
     <h2>Admin</h2>
     <div class="row" id="adminLogin"><label class="f">Admin password<input type="password" id="adminPw" autocomplete="current-password"></label><button class="btn primary" id="adminGo">Unlock</button></div>
     <div id="adminOn" hidden>
+      <p style="margin:0 0 4px"><b id="adminWho"></b> Everything you do is recorded on the <a href="#" id="goAdminLog">Admin log</a> page.</p>
       <p class="note">Admin unlocked on this device until you close the page. You can now change divisions and status on the Players tab, delete log rows, and add players.</p>
       <div class="row"><label class="f">New player name<input id="npName" maxlength="40"></label><label class="f" style="flex:0 1 80px">Div<select id="npDiv"><option>1</option><option>2</option><option>3</option></select></label><label class="f" style="flex:0 1 100px">Start 3DA<input id="npAvg" type="number" step="0.01" inputmode="decimal"></label><button class="btn primary" id="npAdd">Add player</button></div>
       <div class="row" style="margin-top:8px"><label class="f">New league join code<input id="ncCode" maxlength="30"></label><button class="btn" id="ncSet">Set join code</button></div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Season settings</summary>
+        <p class="note" id="seasonNow"></p>
+        <div class="row"><label class="f">Season name<input id="seName" maxlength="40"></label><label class="f">Start (Monday)<input id="seStart" type="date"></label><label class="f" style="flex:0 1 90px">Weeks<input id="seWeeks" type="number" min="1" max="52" inputmode="numeric"></label></div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="seSave">Save changes to this season</button></div>
+        <p class="note" style="margin-top:12px">Ending the season saves the final tables and honours to <b>Past seasons</b> on the League page, then starts a fresh season with everyone on 0. Players keep their divisions; move anyone you want to promote or relegate on the Players page.</p>
+        <div class="row"><label class="f">New season name<input id="nsName" maxlength="40" placeholder="Season 2"></label><label class="f">Start (Monday)<input id="nsStart" type="date"></label><label class="f" style="flex:0 1 90px">Weeks<input id="nsWeeks" type="number" min="1" max="52" value="4" inputmode="numeric"></label></div>
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="nsGo">End this season &amp; start new</button></div>
+      </details>
       <p class="err" id="adminMsg" style="text-align:left"></p>
       <button class="btn" id="adminOut">Lock admin</button>
     </div>
@@ -262,6 +273,7 @@ details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
         <label class="f" style="flex:0 1 90px">Legs B<input type="number" min="0" max="5" id="qLB" inputmode="numeric"></label>
         <label class="f">Player B<select id="qB"></select></label>
       </div>
+      <label class="f" style="margin-top:10px">Screenshot of the app's match screen (needed for app results, up to 3)<input type="file" id="qProof" accept="image/*" multiple></label>
       <div id="qStats"></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="qAdd">Add to log</button><span class="note" id="qMsg"></span></div>
     </div>
@@ -279,10 +291,16 @@ details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
       <p class="note" style="margin-top:-4px">Ranked by points per game, then leg difference, then legs won. <b>Q</b> = playoff place: top 2 who have played at least 50% of their fixtures.</p>
       <div id="leagueOut"></div>
     </div>
+    <div class="card" id="pastBox" hidden><h2>Past seasons</h2><label class="f">Season<select id="pastSel"></select></label><div id="pastOut"></div></div>
     <div class="card"><h2>Data checks</h2><div class="tw"><table id="chkTbl"></table></div></div>
   </section>
 
   <!-- PLAYERS -->
+  <section class="view" id="v-mine" hidden>
+    <div class="card"><h2>My matches</h2><label class="f">I am<select id="meSel"></select></label></div>
+    <div id="mineOut" style="display:grid;gap:14px"></div>
+  </section>
+
   <section class="view" id="v-tourn" hidden>
     <div class="card" id="tHead"></div>
     <div class="card" id="tAdmin" hidden></div>
@@ -294,21 +312,35 @@ details.stx summary{cursor:pointer;font-weight:600;font-size:14px}
       <h2>Players</h2>
       <p class="banner" id="pendNote" hidden></p>
       <p class="note" style="margin-top:-4px">Division and status are set by you and never reshuffle. Set someone to Withdrawn to see their matches voided. Every stat is calculated from the Results Log by name.</p>
-      <div class="tw"><table id="plTbl"></table></div>
+      <div id="plTbl"></div>
     </div>
   </section>
 
   <!-- RULES -->
+  <section class="view" id="v-admin" hidden>
+    <div class="card"><h2>Admin log</h2>
+      <p class="note" style="margin-top:-4px">Every admin action, filed by season. To undo a mistake, one admin requests a reversal and a <b>different</b> admin confirms it.</p>
+      <label class="f">Season<select id="alSeason"></select></label>
+      <p class="err" id="alMsg" style="text-align:left"></p>
+      <div id="alOut"></div></div>
+    <div class="card"><h2>Player codes</h2><p class="note" style="margin-top:-4px">Each player's code for submitting results. Send existing players theirs privately. Keep this list to admins.</p><button class="btn" id="pcLoad">Show player codes</button><div id="pcOut"></div></div>
+    <div class="card"><h2>Change my admin password</h2><div class="row"><label class="f">New password (8+ characters)<input id="npw" type="password" autocomplete="new-password"></label><button class="btn" id="npwGo">Change</button></div><p class="err" id="npwMsg" style="text-align:left"></p></div>
+  </section>
+
   <section class="view" id="v-rules" hidden>
+    <div class="card" id="rulesWelcome" hidden style="border-color:var(--ok);background:var(--ok-soft)"></div>
     <div class="card rules">
+      <p style="margin-top:0">Chat, arrange matches and share results in the league Discord: <a href="https://discord.gg/Zhf9rNb7h" target="_blank" rel="noopener">discord.gg/Zhf9rNb7h</a></p>
       <h2>Match format</h2>
       <ul><li>501, straight in, double out. Best of 8 legs: first to 5 wins; 4-4 is a draw.</li>
       <li>Player A throws first in leg 1 (or throw for bull). The throw alternates every leg.</li>
       <li>Everyone in a division plays everyone else twice. Win 3 pts, draw 1, loss 0.</li>
-      <li>League runs 26 Oct – 22 Nov 2026.</li></ul>
+      <li id="ruleDates">League dates are set by the admin each season.</li></ul>
       <h2>Submitting</h2>
       <ul><li>The winner submits, one row per match. On a draw Player A submits.</li>
       <li>Quick: date, names and legs. Played in DartCounter or another app? Open "Add stats from your app" and copy the numbers from its Match details screen so your averages, 180s and checkouts count. Full: score the match on the Scorer and the stats are saved for you.</li>
+      <li><b>Player code:</b> every player has a 4-character code. New players get theirs when they join; existing players get theirs from an admin. Save it once at the top of the page and it's remembered on that phone. You can only submit results for matches you played in.</li>
+      <li><b>Screenshot rule:</b> if you played in DartCounter or any other app, upload a screenshot of the app's match screen showing both players' names and the score when you submit. It's required for app results. Results without proof can be removed by the admin. Matches scored on our Scorer don't need one.</li>
       <li>The Status column must say OK, otherwise the row is ignored.</li></ul>
       <h2>If matches aren't played</h2>
       <ul><li>Unplayed matches are void: no points to either player, no penalty.</li>
@@ -336,17 +368,36 @@ const MKEY="darts-league-match-v1";
 let S={players:[],log:[],match:null};
 try{const t=localStorage.getItem(MKEY);if(t)S.match=JSON.parse(t)}catch(e){}
 function save(){try{localStorage.setItem(MKEY,JSON.stringify(S.match))}catch(e){}}
-let ADMIN=null, loadedOnce=false, CODE=null, joinOpen=false;
+let SEASONS=[], CURS=null;
+const DISCORD="https://discord.gg/Zhf9rNb7h";
+const proofURL=p=>SB_URL+"/storage/v1/object/public/proofs/"+p;
+function fmtD(d){return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+function seasonEnd(se){const d=new Date(se.start_date+"T12:00:00");d.setDate(d.getDate()+se.weeks*7-1);return d.toISOString().slice(0,10)}
+async function shrink(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?res(b):rej(new Error("Couldn't read that image")),"image/jpeg",0.8)};img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("That file isn't an image we can read"))};img.src=url})}
+async function uploadProofs(input){const files=[...(input&&input.files||[])].slice(0,3),paths=[];
+  for(const f of files){const blob=await shrink(f);const rnd=[...crypto.getRandomValues(new Uint8Array(8))].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const path=`m/${today()}/${rnd}.jpg`;const {error}=await db.storage.from("proofs").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw new Error("Screenshot upload failed: "+error.message);paths.push(path)}
+  return paths}
+const proofLinks=ps=>(ps||[]).map((p,i)=>`<a href="${proofURL(p)}" target="_blank" rel="noopener" aria-label="Screenshot ${i+1}">📷</a>`).join(" ");
+let ADMIN=null, ADMIN_NO=null, loadedOnce=false, CODE=null, joinOpen=false, PCODE=null;
+try{PCODE=localStorage.getItem("darts-player-code")}catch(e){}
+function setPcode(c){PCODE=c?c.trim().toUpperCase():null;try{PCODE?localStorage.setItem("darts-player-code",PCODE):localStorage.removeItem("darts-player-code")}catch(e){}}
+const subCode=()=>ADMIN||PCODE;
 try{CODE=localStorage.getItem("darts-league-code")}catch(e){}
 function renderCode(){
   const box=$("codeBox");
   const joinForm=`<div id="joinForm" ${joinOpen?"":"hidden"} style="margin-top:10px"><p class="note" style="margin:0 0 6px">New to the league? Add yourself. The admin approves you and sets your division.</p>
     <div class="row"><label class="f">Your full name<input id="jName" maxlength="40" autocomplete="name"></label><label class="f" style="flex:0 1 120px">Your 3-dart avg<input id="jAvg" type="number" step="0.01" inputmode="decimal"></label>
     ${CODE?"":`<label class="f" style="flex:0 1 140px">League code<input id="jCode" maxlength="30"></label>`}<button class="btn primary" id="jGo">Join</button></div><p class="err" id="jMsg" style="text-align:left"></p></div>`;
-  if(CODE){box.innerHTML=`<div class="row" style="justify-content:space-between"><span class="note">League code saved on this phone. You can submit results.</span><span class="row"><button class="btn" id="joinToggle" style="padding:6px 10px;font-size:12px">Join as new player</button><button class="btn" id="codeForget" style="padding:6px 10px;font-size:12px">Change code</button></span></div>`+joinForm;}
+  const pRow=PCODE?`<div class="row" style="justify-content:space-between;margin-top:8px"><span class="note">Your player code <b style="letter-spacing:.15em;color:var(--ink)">${esc(PCODE)}</b> is saved on this phone.</span><button class="btn" id="pcForget" style="padding:6px 10px;font-size:12px">Change player code</button></div>`
+    :`<div class="row" style="margin-top:8px"><label class="f">Your player code (4 characters, needed to submit results)<input id="pcIn" maxlength="4" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></label><button class="btn primary" id="pcGo">Save</button></div><p class="note" style="margin:4px 0 0">Don't have one? New players get it when they join. Existing players: ask an admin.</p>`;
+  if(CODE){box.innerHTML=`<div class="row" style="justify-content:space-between"><span class="note">League code saved on this phone.</span><span class="row"><button class="btn" id="joinToggle" style="padding:6px 10px;font-size:12px">Join as new player</button><button class="btn" id="codeForget" style="padding:6px 10px;font-size:12px">Change league code</button></span></div>`+pRow+joinForm;}
   else{box.innerHTML=`<h2>League code</h2><p class="note" style="margin-top:-4px">Ask the league admin for the code. You need it once on this phone to submit results or join. Anyone can view the tables without it.</p>
     <div class="row"><label class="f">League code<input id="codeIn" maxlength="30" autocapitalize="characters"></label><button class="btn primary" id="codeGo">Save code</button><button class="btn" id="joinToggle">Join as new player</button></div><p class="err" id="codeMsg" style="text-align:left"></p>`+joinForm;}
   const t=$("joinToggle");if(t)t.onclick=()=>{joinOpen=!joinOpen;renderCode()};
+  const pf=$("pcForget");if(pf)pf.onclick=()=>{setPcode(null);renderCode()};
+  const pg=$("pcGo");if(pg)pg.onclick=()=>{const v=$("pcIn").value.trim().toUpperCase();if(!/^[A-Z2-9]{4}$/.test(v)){$("pcIn").setCustomValidity("4 letters/numbers");$("pcIn").reportValidity();return}setPcode(v);renderCode()};
   const f=$("codeForget");if(f)f.onclick=()=>{CODE=null;try{localStorage.removeItem("darts-league-code")}catch(e){}renderCode()};
   const g=$("codeGo");if(g)g.onclick=async()=>{const c=$("codeIn").value.trim();if(!c)return;
     const {data,error}=await db.rpc("lg_check_join_code",{p_code:c});
@@ -354,17 +405,20 @@ function renderCode(){
     CODE=c;try{localStorage.setItem("darts-league-code",c)}catch(e){}renderCode()};
   const j=$("jGo");if(j)j.onclick=async()=>{const n=$("jName").value.trim().replace(/\s+/g," "),avg=$("jAvg").value,c=CODE||($("jCode")?$("jCode").value.trim():"");
     if(n.length<2){$("jMsg").textContent="Type your full name.";return}if(!c){$("jMsg").textContent="Enter the league code.";return}
-    const {error}=await db.rpc("lg_join_league",{p_code:c,p_name:n,p_start:avg===""?null:+avg});
+    const {data:newCode,error}=await db.rpc("lg_join_league2",{p_code:c,p_name:n,p_start:avg===""?null:+avg});
     if(error){$("jMsg").textContent=error.message.includes("duplicate")?"That name is already in the league.":error.message;return}
+    setPcode(newCode);
     if(!CODE){CODE=c;try{localStorage.setItem("darts-league-code",c)}catch(e){}}
-    joinOpen=false;renderCode();await loadData();$("syncNote").textContent="Thanks "+n+". You're on the list as Pending until the admin sets your division."};
+    joinOpen=false;renderCode();await loadData();
+    $("rulesWelcome").innerHTML=`<h2>Welcome, ${esc(n)}</h2><p style="margin:0">Your player code is <b style="font-size:22px;letter-spacing:.2em">${esc(newCode)}</b>. Screenshot it or write it down: you need it to submit results, and it's saved on this phone. You're on the list as <b>Pending</b>. The admin will put you in a division. While you wait, read the rules below and join the <a href="${DISCORD}" target="_blank" rel="noopener">league Discord</a> to arrange matches.</p>`;$("rulesWelcome").hidden=false;show("rules")};
 }
 async function loadData(){
   $("syncNote").textContent="Loading league…";
-  const [p,r]=await Promise.all([db.from("lg_players").select("*").order("id"),db.from("lg_results").select("*").order("id")]);
-  if(p.error||r.error){$("syncNote").textContent="Couldn't reach the league database. Check your signal and press Refresh.";return}
+  const [p,r,se]=await Promise.all([db.from("lg_players").select("*").order("id"),db.from("lg_results").select("*").order("id"),db.from("lg_seasons").select("*").order("id")]);
+  if(p.error||r.error||se.error){$("syncNote").textContent="Couldn't reach the league database. Check your signal and press Refresh.";return}
   S.players=p.data.map(x=>({id:x.id,name:x.name,div:x.division,start:+x.start_3da||0,status:x.status}));
-  S.log=r.data.map(x=>({id:x.id,date:x.match_date,a:x.player_a,la:x.legs_a,lb:x.legs_b,b:x.player_b,sub:x.submitted_by,sa:x.stats_a||{},sb:x.stats_b||{},note:x.note}));
+  SEASONS=se.data;CURS=SEASONS[SEASONS.length-1]||{id:1,name:"Season 1",start_date:today(),weeks:4};
+  S.log=r.data.filter(x=>(x.season||1)===CURS.id&&!x.voided).map(x=>({id:x.id,date:x.match_date,a:x.player_a,la:x.legs_a,lb:x.legs_b,b:x.player_b,sub:x.submitted_by,sa:x.stats_a||{},sb:x.stats_b||{},note:x.note,proofs:x.proofs||[]}));
   loadedOnce=true;
   $("syncNote").textContent="Live league · updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",hour12:false});
   renderAll();if(!S.match&&!$("selA").value){$("selA").value=""}
@@ -377,7 +431,8 @@ async function addResult(r){
   const dup=S.log.some(q=>q.date===r.date&&((q.a===r.a&&q.b===r.b)||(q.a===r.b&&q.b===r.a)));
   if(dup)return "Not saved: this pair already has a result on "+r.date+". If you really played twice today, ask the admin.";
   if(!CODE)return "Not saved: enter the league join code at the top of the page first.";
-  const {error}=await db.rpc("lg_submit_result",{p_code:CODE,p_date:r.date,p_a:r.a,p_la:r.la,p_lb:r.lb,p_b:r.b,p_sub:r.sub,p_sa:r.sa,p_sb:r.sb,p_note:r.note});
+  if(!subCode())return "Not saved: enter your player code at the top of the page first.";
+  const {error}=await db.rpc("lg_submit_result3",{p_code:CODE,p_pcode:subCode(),p_date:r.date,p_a:r.a,p_la:r.la,p_lb:r.lb,p_b:r.b,p_sa:r.sa,p_sb:r.sb,p_note:r.note,p_proofs:r.proofs||[]});
   if(error){if(/league code/i.test(error.message)){CODE=null;try{localStorage.removeItem("darts-league-code")}catch(e){}renderCode();return "Not saved: the league code has changed. Enter the new code at the top of the page."}return "Not saved: "+error.message}
   await loadData();return null;
 }
@@ -389,7 +444,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ---------- tabs ---------- */
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.v)));
 function show(v){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
-  document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);renderAll();window.scrollTo(0,0);if(loadedOnce&&v!=="scorer")loadData();if(v==="tourn")loadT()}
+  document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);renderAll();window.scrollTo(0,0);if(loadedOnce&&v!=="scorer")loadData();if(v==="tourn")loadT();if(v==="admin")loadAdminLog()}
 
 /* ---------- results log logic (mirrors Excel Status column) ---------- */
 function statuses(){const out=[];S.log.forEach((r,i)=>{out.push(status(r,i,out))});return out}
@@ -582,7 +637,7 @@ $("submitBtn").onclick=()=>{const m=M();if(!m||!matchDone()||m.submitted)return;
   const pack=s=>({tda:s.tda,f9:s.f9,b180:s.b[180],b160:s.b[160],b140:s.b[140],b120:s.b[120],b100:s.b[100],b80:s.b[80],b60:s.b[60],b40:s.b[40],hf:s.hf||null,hs:s.hs||null,bl:s.bl,co:s.co,dbl:s.dbl});
   const a=legsWon("A"),b=legsWon("B");
   $("submitBtn").disabled=true;$("submitBtn").textContent="Saving…";
-  if(m.tmatch){db.rpc("lg_t_submit",{p_code:CODE,p_match:m.tmatch,p_la:a,p_lb:b,p_sa:pack(mstats("A")),p_sb:pack(mstats("B"))}).then(async({error})=>{
+  if(m.tmatch){db.rpc("lg_t_submit3",{p_code:CODE,p_pcode:subCode(),p_match:m.tmatch,p_la:a,p_lb:b,p_sa:pack(mstats("A")),p_sb:pack(mstats("B")),p_proofs:[]}).then(async({error})=>{
       if(error&&!/already has a result/.test(error.message)){$("doneText").textContent="Not saved: "+error.message;$("submitBtn").disabled=false;$("submitBtn").textContent="Try again";return}
       m.submitted=true;save();if(m.live)pushLive();await loadT();show("tourn")});return}
   addResult({date:m.date,a:m.a,la:a,lb:b,b:m.b,sub:a>=b?m.a:m.b,sa:pack(mstats("A")),sb:pack(mstats("B")),note:"From scorer"}).then(err=>{
@@ -626,15 +681,18 @@ $("qAdd").onclick=()=>{const r={date:$("qDate").value||today(),a:$("qA").value,l
   if(!r.a||!r.b){$("qMsg").textContent="Pick both players.";return}
   const st=readStats("q",r.la,r.lb,r.a,r.b);if(st.err){$("qMsg").textContent="Not saved: "+st.err+".";return}
   r.sa=st.sa;r.sb=st.sb;if(Object.keys(r.sa).length||Object.keys(r.sb).length)r.note="Quick entry + app stats";
+  const pf=$("qProof");if(!ADMIN&&!(pf.files&&pf.files.length)){$("qMsg").textContent="Not saved: add a screenshot of the app's match screen (see Rules).";return}
   r.sub=r.la>=r.lb?r.a:r.b;$("qMsg").textContent="Saving…";$("qAdd").disabled=true;
-  addResult(r).then(err=>{$("qAdd").disabled=false;$("qMsg").textContent=err||"Saved. Tables updated.";if(!err){$("qLA").value="";$("qLB").value="";clearStats("q")}})};
+  const pre=(()=>{const tmp=S.log.concat([r]);const sv=S.log;S.log=tmp;const z=statuses();S.log=sv;return z[z.length-1]})();
+  if(pre!=="OK"){$("qAdd").disabled=false;$("qMsg").textContent="Not saved: "+pre+".";return}
+  (async()=>{try{r.proofs=await uploadProofs(pf)}catch(e){return e.message}return addResult(r)})().then(err=>{if(!err)pf.value="";$("qAdd").disabled=false;$("qMsg").textContent=err||"Saved. Tables updated.";if(!err){$("qLA").value="";$("qLB").value="";clearStats("q")}})};
 function renderLog(){
   const sts=statuses();
-  let h=`<tr><th>Date</th><th class="l">Player A</th><th>Legs</th><th class="l">Player B</th><th>A 3DA</th><th>B 3DA</th><th class="l">Status</th><th></th></tr>`;
+  let h=`<tr><th>Date</th><th class="l">Player A</th><th>Legs</th><th class="l">Player B</th><th>A 3DA</th><th>B 3DA</th><th>Proof</th><th class="l">Status</th><th></th></tr>`;
   S.log.forEach((r,i)=>{const okk=sts[i]==="OK";
-    h+=`<tr><td>${esc(r.date.slice(8,10)+"/"+r.date.slice(5,7))}</td><td class="l">${esc(r.a)}</td><td><b>${esc(r.la)}-${esc(r.lb)}</b></td><td class="l">${esc(r.b)}</td><td>${r.sa&&r.sa.tda?r.sa.tda.toFixed(2):"–"}</td><td>${r.sb&&r.sb.tda?r.sb.tda.toFixed(2):"–"}</td><td class="l"><span class="pill ${okk?"ok":"bad"}">${esc(sts[i])}</span></td><td>${ADMIN?`<button class="x" aria-label="Delete row" data-id="${r.id}">×</button>`:""}</td></tr>`});
+    h+=`<tr><td>${esc(r.date.slice(8,10)+"/"+r.date.slice(5,7))}</td><td class="l">${esc(r.a)}</td><td><b>${esc(r.la)}-${esc(r.lb)}</b></td><td class="l">${esc(r.b)}</td><td>${r.sa&&r.sa.tda?r.sa.tda.toFixed(2):"–"}</td><td>${r.sb&&r.sb.tda?r.sb.tda.toFixed(2):"–"}</td><td>${proofLinks(r.proofs)||'<span class="note">–</span>'}</td><td class="l"><span class="pill ${okk?"ok":"bad"}">${esc(sts[i])}</span></td><td>${ADMIN?`<button class="x" aria-label="Delete row" data-id="${r.id}">×</button>`:""}</td></tr>`});
   $("logTbl").innerHTML=h;$("logTbl").querySelectorAll("button.x").forEach(b=>b.onclick=async()=>{
-    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Delete?";b.style.color="var(--bad)";return}
+    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Remove?";b.style.color="var(--bad)";return}
     const {error}=await db.rpc("lg_admin_delete_result",{p_pin:ADMIN,p_id:+b.dataset.id});if(error){alertMsg(error.message);return}await loadData()});
 }
 
@@ -642,7 +700,7 @@ function renderLog(){
 function renderLeague(){
   const {list,sts}=aggregate();
   $("leagueOut").innerHTML=[1,2,3].map(d=>{const t=list.filter(a=>a.div===d&&a.key>=0).sort((x,y)=>x.pos-y.pos);
-    return `<div class="divh">Division ${d}</div><div class="tw"><table><tr><th>Pos</th><th class="l">Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th><th>PPG</th><th>Played</th><th>Q</th></tr>`+
+    return `<div class="divh">Division ${d}</div><div class="tw"><table><tr><th>Pos</th><th class="l">Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th><th>Pts/game</th><th>Played</th><th>Q</th></tr>`+
     t.map(a=>`<tr class="${a.q?"q":""}"><td>${a.pos}</td><td class="l"><b>${esc(a.name)}</b></td><td>${a.P}</td><td>${a.W}</td><td>${a.D}</td><td>${a.L}</td><td>${a.LD>0?"+":""}${a.LD}</td><td><b>${a.Pts}</b></td><td>${a.PPG.toFixed(2)}</td><td>${a.P}/${a.due}</td><td>${a.q?"Q":""}</td></tr>`).join("")+"</table></div>"}).join("");
   const ok=sts.filter(s=>s==="OK").length,okRows=S.log.filter((r,i)=>sts[i]==="OK");
   const sum=k=>list.reduce((s,a)=>s+a[k],0),dr=okRows.filter(r=>+r.la===DRAW&&+r.lb===DRAW).length;
@@ -659,10 +717,15 @@ function renderLeague(){
 /* ---------- players ---------- */
 function renderPlayers(){
   const {list}=aggregate();
-  let h=`<tr><th class="l">Name</th><th>Div</th><th>Status</th><th>Start 3DA</th><th>P</th><th>W-D-L</th><th>Pts</th><th>PPG</th><th>Elig.</th><th>League 3DA</th><th>180</th><th>140+</th><th>120+</th><th>100+</th><th>High fin.</th><th>Best leg</th><th>CO</th><th>CO %</th></tr>`;
-  list.forEach((a,i)=>{h+=`<tr><td class="l"><b>${esc(a.name)}</b></td><td>${ADMIN?"":(a.div||"–")}<select ${ADMIN?"":"hidden"} data-i="${i}" data-k="div" aria-label="Division for ${esc(a.name)}" style="padding:3px;width:auto">${a.div?"":`<option selected value="">–</option>`}${[1,2,3].map(d=>`<option ${d===a.div?"selected":""}>${d}</option>`).join("")}</select></td>
-    <td>${ADMIN?"":a.status}<select ${ADMIN?"":"hidden"} data-i="${i}" data-k="status" aria-label="Status for ${esc(a.name)}" style="padding:3px;width:auto">${["Pending","Active","Withdrawn"].map(s=>`<option ${s===a.status?"selected":""}>${s}</option>`).join("")}</select></td>
-    <td>${a.start.toFixed(2)}</td><td>${a.P}</td><td>${a.W}-${a.D}-${a.L}</td><td>${a.Pts}</td><td>${a.PPG.toFixed(2)}</td><td>${a.status!=="Active"?"–":a.elig?"Yes":`${a.P}/${a.minq}`}</td><td>${f2(a.tda)}</td><td>${a.b180}</td><td>${a.b140}</td><td>${a.b120}</td><td>${a.b100}</td><td>${dash(a.hf)}</td><td>${dash(a.bl)}</td><td>${a.co}/${a.dbl}</td><td>${a.cop==null?"–":(a.cop*100).toFixed(1)+"%"}</td></tr>`});
+  const head=`<tr><th class="l">Name</th>${ADMIN?"<th>Div</th><th>Status</th>":""}<th>Played</th><th>W-D-L</th><th>Pts</th><th>Points per game</th><th>Playoff eligible</th><th>180</th><th>140+</th><th>120+</th><th>100+</th><th>High finish</th><th>Best leg</th><th>Checkouts</th><th>Checkout %</th></tr>`;
+  const row=(a,i)=>`<tr class="${a.q?"q":""}"><td class="l"><b>${esc(a.name)}</b></td>${ADMIN?`<td><select data-i="${i}" data-k="div" aria-label="Division for ${esc(a.name)}" style="padding:3px;width:auto">${a.div?"":`<option selected value="">–</option>`}${[1,2,3].map(d=>`<option ${d===a.div?"selected":""}>${d}</option>`).join("")}</select></td>
+    <td><select data-i="${i}" data-k="status" aria-label="Status for ${esc(a.name)}" style="padding:3px;width:auto">${["Pending","Active","Withdrawn"].map(x=>`<option ${x===a.status?"selected":""}>${x}</option>`).join("")}</select></td>`:""}
+    <td>${a.P}</td><td>${a.W}-${a.D}-${a.L}</td><td>${a.Pts}</td><td>${a.PPG.toFixed(2)}</td><td>${a.status!=="Active"?"–":a.elig?"Yes":`${a.P} of ${a.minq}`}</td><td>${a.b180}</td><td>${a.b140}</td><td>${a.b120}</td><td>${a.b100}</td><td>${dash(a.hf)}</td><td>${a.bl?a.bl+" darts":"–"}</td><td>${a.co}/${a.dbl}</td><td>${a.cop==null?"–":(a.cop*100).toFixed(1)+"%"}</td></tr>`;
+  const groups=[[1,"Division 1"],[2,"Division 2"],[3,"Division 3"]].map(([d,t])=>[t,list.map((a,i)=>[a,i]).filter(([a])=>a.status==="Active"&&a.div===d).sort(([x],[y])=>(x.pos||99)-(y.pos||99))]);
+  groups.push(["Waiting for a division",list.map((a,i)=>[a,i]).filter(([a])=>a.status==="Pending")]);
+  groups.push(["Withdrawn",list.map((a,i)=>[a,i]).filter(([a])=>a.status==="Withdrawn")]);
+  let h=`<p class="note" style="margin:0 0 4px"><b>Points per game</b> = points ÷ matches played (tables are ranked on this). <b>Playoff eligible</b> = played at least half your matches; otherwise it shows played of needed. Green rows hold a playoff place.</p>`;
+  groups.forEach(([t,rows])=>{if(!rows.length)return;h+=`<div class="divh">${t}</div><div class="tw"><table>${head}${rows.map(([a,i])=>row(a,i)).join("")}</table></div>`});
   $("plTbl").innerHTML=h;
   const pend=S.players.filter(p=>p.status==="Pending");$("pendNote").hidden=!pend.length;
   $("pendNote").textContent=pend.length?`${pend.length} waiting for approval: ${pend.map(p=>p.name).join(", ")}. Admin: pick their division below to approve.`:"";
@@ -699,10 +762,10 @@ function matchHTML(t,m,label){
   const nm=x=>x?esc(x):'<span class="note">to be decided</span>';
   const live=(t.status==="groups"&&m.stage==="group")||(t.status==="knockout"&&m.stage==="ko");
   let h=`<div class="tm"><div class="who"><div class="${m.winner&&m.winner===m.player_a?"w":""}">${nm(m.player_a)}</div><div class="${m.winner&&m.winner===m.player_b?"w":""}">${m.is_bye&&!m.player_b?'<span class="note">bye</span>':nm(m.player_b)}</div></div>
-    <div class="sc">${m.is_bye?'<span class="note" style="font-size:13px">bye</span>':done?`${m.legs_a}<br>${m.legs_b}`:`<span class="note" style="font-size:12px">first to ${tg}</span>`}</div>`;
+    <div class="sc">${(m.proofs||[]).length?`<span style="font-size:14px">${proofLinks(m.proofs)}</span> `:""}${m.is_bye?'<span class="note" style="font-size:13px">bye</span>':done?`${m.legs_a}<br>${m.legs_b}`:`<span class="note" style="font-size:12px">first to ${tg}</span>`}</div>`;
   if(ready&&live){
     if(TS.open===m.id)h+=`<div class="act"><button class="btn primary" data-sc="phone" data-id="${m.id}">Score on this phone</button><button class="btn" data-sc="A" data-id="${m.id}">Online, I'm ${esc(m.player_a.split(" ")[0])}</button><button class="btn" data-sc="B" data-id="${m.id}">Online, I'm ${esc(m.player_b.split(" ")[0])}</button>
-      <span class="row" style="gap:4px"><input type="number" min="0" max="${tg}" inputmode="numeric" id="ra${m.id}" aria-label="Legs ${esc(m.player_a)}">–<input type="number" min="0" max="${tg}" inputmode="numeric" id="rb${m.id}" aria-label="Legs ${esc(m.player_b)}"><button class="btn" data-res="${m.id}">Save app result</button></span><button class="btn" data-close="1">Close</button><div style="flex-basis:100%">${statsFormHTML("t"+m.id,m.player_a,m.player_b,false)}</div></div>`;
+      <span class="row" style="gap:4px"><input type="number" min="0" max="${tg}" inputmode="numeric" id="ra${m.id}" aria-label="Legs ${esc(m.player_a)}">–<input type="number" min="0" max="${tg}" inputmode="numeric" id="rb${m.id}" aria-label="Legs ${esc(m.player_b)}"><button class="btn" data-res="${m.id}">Save app result</button></span><button class="btn" data-close="1">Close</button><label class="f" style="flex-basis:100%">Screenshot (needed for app results)<input type="file" accept="image/*" multiple id="tp${m.id}"></label><div style="flex-basis:100%">${statsFormHTML("t"+m.id,m.player_a,m.player_b,false)}</div></div>`;
     else h+=`<div class="act"><button class="btn" data-openm="${m.id}">Play / enter result</button></div>`;
   }
   if(done&&!m.is_bye&&ADMIN)h+=`<div class="act"><button class="btn" data-clear="${m.id}">Admin: clear result</button></div>`;
@@ -726,12 +789,12 @@ function renderT(){
     ad.innerHTML=h;
     const g=$("tDrawG");if(g)g.onclick=async()=>{if(g.dataset.armed!=="1"){g.dataset.armed="1";g.textContent="Sure? Entries will close";return}
       const names=shuffle(TS.entries.map(e=>e.name)),G=Math.ceil(names.length/4),groups=Array.from({length:G},()=>[]);names.forEach((n,i)=>groups[i%G].push(n));
-      const {error}=await db.rpc("lg_t_start_groups",{p_pin:ADMIN,p_tid:t.id,p_groups:groups});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
+      const {error}=await db.rpc("lg_t_start_groups2",{p_pin:ADMIN,p_tid:t.id,p_groups:groups});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
     const k=$("tDrawK");if(k)k.onclick=async()=>{if(k.dataset.armed!=="1"){k.dataset.armed="1";k.textContent="Sure? Group stage will close";return}
       const q=[];(t.groups||[]).forEach((_,i)=>groupTable(t,i+1).slice(0,2).forEach(r=>q.push(r.n)));
       let size=2;while(size<q.length)size*=2;const byes=size-q.length,sh=shuffle(q),pairs=[];
       for(let i=0;i<byes;i++)pairs.push([sh[i],null]);for(let i=byes;i<sh.length;i+=2)pairs.push([sh[i],sh[i+1]]);
-      const {error}=await db.rpc("lg_t_start_knockout",{p_pin:ADMIN,p_tid:t.id,p_pairs:shuffle(pairs)});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
+      const {error}=await db.rpc("lg_t_start_knockout2",{p_pin:ADMIN,p_tid:t.id,p_pairs:shuffle(pairs)});if(error){$("tAdMsg").textContent=error.message;return}await loadT()};
     $("tnGo").onclick=async()=>{const n=$("tnName").value.trim();if(n.length<3){$("tAdMsg").textContent="Give the tournament a name.";return}
       const {data,error}=await db.rpc("lg_t_create",{p_pin:ADMIN,p_name:n,p_lg:+$("tnG").value,p_lko:+$("tnK").value,p_lf:+$("tnF").value});
       if(error){$("tAdMsg").textContent=error.message;return}TS.cur=data;try{localStorage.setItem("darts-t-cur",data)}catch(e){}await loadT()};
@@ -741,7 +804,7 @@ function renderT(){
   let h="";
   if(t.status==="finished")h+=`<div class="card"><p class="note" style="text-align:center;margin:0">Champion</p><div class="champ">${esc(t.champion||"")}</div></div>`;
   if(t.status==="open"){
-    h+=`<div class="card"><h2>Put your name down</h2>${CODE?`<p class="note" style="margin-top:-4px">League players: pick your name. Anyone else: type your full name.</p>
+    h+=`<div class="card"><h2>Put your name down</h2>${CODE?`<p class="note" style="margin-top:-4px">League players: pick your name (your player code must be saved at the top). Anyone else: type your full name and you'll get a code.</p>
       <div class="row"><label class="f">Your name<input id="tEnterName" list="tNames" maxlength="40" autocomplete="name"></label><button class="btn primary" id="tEnterGo">Enter</button></div><datalist id="tNames">${S.players.filter(p=>p.status==="Active").map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist><p class="err" id="tEnterMsg" style="text-align:left"></p>`
       :`<p class="note">Enter the league code at the top of the page first, then you can put your name down.</p>`}
       <h2 style="margin-top:14px">Entered (${TS.entries.length}/32)</h2>${TS.entries.length?`<ol class="entries">${TS.entries.map(e=>`<li>${esc(e.name)}${ADMIN?` <button class="x" data-rm="${e.id}" aria-label="Remove ${esc(e.name)}">×</button>`:""}</li>`).join("")}</ol>`:'<p class="note">Nobody yet.</p>'}
@@ -760,8 +823,9 @@ function renderT(){
   body.innerHTML=h;
   Object.entries(keep).forEach(([k,v])=>{const el=$(k);if(el)el.value=v});openSt.forEach(x=>{const d=body.querySelector(`details[data-stx="${x}"]`);if(d)d.open=true});
   const eg=$("tEnterGo");if(eg)eg.onclick=async()=>{const n=$("tEnterName").value.trim().replace(/\s+/g," ");if(n.length<2){$("tEnterMsg").textContent="Type your full name.";return}
-    const {error}=await db.rpc("lg_t_enter",{p_code:CODE,p_tid:t.id,p_name:n});
-    if(error){$("tEnterMsg").textContent=/league code/i.test(error.message)?"The league code has changed. Enter the new one at the top.":error.message;return}await loadT()};
+    const {data:tc,error}=await db.rpc("lg_t_enter2",{p_code:CODE,p_tid:t.id,p_name:n,p_pcode:subCode()||""});
+    if(error){$("tEnterMsg").textContent=/league code/i.test(error.message)?"The league code has changed. Enter the new one at the top.":error.message;return}
+    if(tc&&tc!=="LEAGUE"){if(!PCODE)setPcode(tc);TS.msg=`${n} is in. Tournament player code: ${tc} (saved on this phone). You need it to submit results.`;renderCode()}else TS.msg=`${n} is in.`;await loadT()};
   body.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Remove?";return}
     const {error}=await db.rpc("lg_t_remove_entry",{p_pin:ADMIN,p_entry:+b.dataset.rm});if(error)TS.msg=error.message;await loadT()});
   body.querySelectorAll("[data-openm]").forEach(b=>b.onclick=()=>{if(!CODE){TS.msg="Enter the league code at the top of the page first.";renderT();return}TS.open=+b.dataset.openm;renderT()});
@@ -769,7 +833,10 @@ function renderT(){
   body.querySelectorAll("[data-res]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.res,la=$("ra"+id).value,lb=$("rb"+id).value;
     if(la===""||lb===""){TS.msg="Type both players' legs.";renderT();return}
     const mm=TS.matches.find(x=>x.id===id),st=readStats("t"+id,la,lb,mm.player_a,mm.player_b);if(st.err){TS.msg="Not saved: "+st.err+".";renderT();return}
-    const {error}=await db.rpc("lg_t_submit",{p_code:CODE,p_match:id,p_la:+la,p_lb:+lb,p_sa:st.sa,p_sb:st.sb});
+    if(!subCode()){TS.msg="Enter your player code at the top of the page first.";renderT();return}
+    const pf=$("tp"+id);if(!ADMIN&&!(pf.files&&pf.files.length)){TS.msg="Not saved: add a screenshot of the app's match screen (see Rules).";renderT();return}
+    b.disabled=true;b.textContent="Saving…";let proofs=[];try{proofs=await uploadProofs(pf)}catch(e){TS.msg=e.message;b.disabled=false;b.textContent="Save app result";renderT();return}
+    const {error}=await db.rpc("lg_t_submit3",{p_code:CODE,p_pcode:subCode(),p_match:id,p_la:+la,p_lb:+lb,p_sa:st.sa,p_sb:st.sb,p_proofs:proofs});
     TS.msg=error?"Not saved: "+error.message:"";TS.open=null;await loadT()});
   body.querySelectorAll("[data-clear]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Clear this result?";return}
     const {error}=await db.rpc("lg_t_clear_result",{p_pin:ADMIN,p_match:+b.dataset.clear});TS.msg=error?error.message:"";await loadT()});
@@ -787,12 +854,27 @@ async function startTMatch(id,mode){
 }
 function alertMsg(t){$("adminMsg").textContent=t;$("adminBox").hidden=false}
 $("refreshBtn").onclick=()=>{loadData();loadT()};
+$("pastSel").onchange=renderSeasonBits;
+$("alSeason").onchange=loadAdminLog;
+$("goAdminLog").onclick=e=>{e.preventDefault();show("admin")};
+$("pcLoad").onclick=async()=>{const {data,error}=await db.rpc("lg_admin_codes",{p_pin:ADMIN});if(error){$("pcOut").textContent=error.message;return}
+  $("pcOut").innerHTML=`<div class="tw" style="margin-top:8px"><table><tr><th class="l">Player</th><th>Div</th><th>Status</th><th>Code</th></tr>${data.map(x=>`<tr><td class="l">${esc(x.name)}</td><td>${x.division||"–"}</td><td>${esc(x.status)}</td><td style="font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.15em">${esc(x.code)}</td></tr>`).join("")}</table></div>`};
+$("npwGo").onclick=async()=>{const p=$("npw").value;const {error}=await db.rpc("lg_admin_change_password",{p_pin:ADMIN,p_new:p});
+  if(error){$("npwMsg").textContent=error.message;return}ADMIN=p;$("npw").value="";$("npwMsg").textContent="Password changed. Use the new one next time.";loadAdminLog()};
 $("adminBtn").onclick=()=>{$("adminBox").hidden=!$("adminBox").hidden};
 $("adminGo").onclick=async()=>{$("adminErr").textContent="";const pw=$("adminPw").value;
-  const {data,error}=await db.rpc("lg_admin_check",{p_pin:pw});
+  const {data,error}=await db.rpc("lg_admin_whoami",{p_pin:pw});
   if(error||!data){$("adminErr").textContent="Wrong password.";return}
-  ADMIN=pw;$("adminPw").value="";$("adminLogin").hidden=true;$("adminOn").hidden=false;renderAll()};
-$("adminOut").onclick=()=>{ADMIN=null;$("adminLogin").hidden=false;$("adminOn").hidden=true;$("adminMsg").textContent="";renderAll()};
+  ADMIN=pw;ADMIN_NO=data;$("adminWho").textContent="You are Admin "+data+".";$("adminTab").hidden=false;$("adminPw").value="";$("adminLogin").hidden=true;$("adminOn").hidden=false;fillSeasonAdmin();renderAll()};
+$("adminOut").onclick=()=>{ADMIN=null;ADMIN_NO=null;$("adminTab").hidden=true;if(!$("v-admin").hidden)show("home");$("adminLogin").hidden=false;$("adminOn").hidden=true;$("adminMsg").textContent="";renderAll()};
+function fillSeasonAdmin(){if(!CURS)return;$("seasonNow").textContent=`Current: ${CURS.name}, ${fmtD(CURS.start_date)} – ${fmtD(seasonEnd(CURS))}.`;$("seName").value=CURS.name;$("seStart").value=CURS.start_date;$("seWeeks").value=CURS.weeks;
+  if(!$("nsName").value)$("nsName").value="Season "+(CURS.id+1);if(!$("nsStart").value){const d=new Date(seasonEnd(CURS)+"T12:00:00");d.setDate(d.getDate()+1);while(d.getDay()!==1)d.setDate(d.getDate()+1);$("nsStart").value=d.toISOString().slice(0,10)}}
+$("seSave").onclick=async()=>{const {error}=await db.rpc("lg_admin_edit_season",{p_pin:ADMIN,p_name:$("seName").value.trim(),p_start:$("seStart").value,p_weeks:+$("seWeeks").value});$("adminMsg").textContent=error?error.message:"Season updated.";await loadData();fillSeasonAdmin()};
+$("nsGo").onclick=async()=>{const b=$("nsGo");if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Sure? Tables reset to 0";return}
+  const nm=$("nsName").value.trim();if(nm.length<2||!$("nsStart").value){$("adminMsg").textContent="Give the new season a name and start date.";return}
+  const {error}=await db.rpc("lg_admin_new_season",{p_pin:ADMIN,p_name:nm,p_start:$("nsStart").value,p_weeks:+$("nsWeeks").value||4,p_snapshot:snapshot()});
+  b.dataset.armed="";b.textContent="End this season & start new";
+  if(error){$("adminMsg").textContent=error.message;return}$("nsName").value="";$("nsStart").value="";$("adminMsg").textContent=nm+" started. The old season is under Past seasons on the League page.";await loadData();fillSeasonAdmin()};
 $("ncSet").onclick=async()=>{const c=$("ncCode").value.trim();if(c.length<4){$("adminMsg").textContent="Join code must be at least 4 characters.";return}
   const {error}=await db.rpc("lg_admin_set_join_code",{p_pin:ADMIN,p_code:c});if(error){$("adminMsg").textContent=error.message;return}
   $("ncCode").value="";$("adminMsg").textContent="Join code changed. Phones with the old code will be asked for the new one when they next submit.";};
@@ -814,7 +896,8 @@ function renderHome(){
   const okRows=S.log.map((r,i)=>({r,i})).filter(x=>sts[x.i]==="OK").slice(-6).reverse();
   const t=tCur();
   out.innerHTML=`
-   <div class="card"><h2 style="margin-bottom:2px">This season</h2><p class="note" style="margin:0">${ok} of ${due} league matches played (${due?Math.round(ok/due*100):0}%) · ${list.filter(a=>a.status==="Active").length} players · ${list.reduce((s,a)=>s+a.b180,0)} × 180 so far</p></div>
+   <div class="card"><h2 style="margin-bottom:2px">${CURS?esc(CURS.name):"This season"}</h2><p class="note" style="margin:0">${ok} of ${due} league matches played (${due?Math.round(ok/due*100):0}%) · ${list.filter(a=>a.status==="Active").length} players · ${list.reduce((s,a)=>s+a.b180,0)} × 180 so far${CURS?` · ends ${fmtD(seasonEnd(CURS))}`:""}</p>
+     <div class="row" style="margin-top:10px"><button class="btn primary" data-goto="mine">My matches</button><a class="btn" href="${DISCORD}" target="_blank" rel="noopener" style="text-decoration:none">Join the Discord</a></div></div>
    <div class="homegrid">${lead}</div>
    <div class="homegrid">
      <div class="card hon"><h2>Highest checkout</h2><ol>${top(byHF,a=>a.hf)}</ol></div>
@@ -826,7 +909,69 @@ function renderHome(){
    ${t?`<div class="card"><h2>${esc(t.name)}</h2><p class="note" style="margin:0 0 8px">${t.status==="open"?`Entries open: ${TS.entries.length}/32 entered. Put your name down on the Tournaments page.`:t.status==="finished"?`Champion: <b>${esc(t.champion||"")}</b>`:t.status==="groups"?"Group stage under way.":"Knockout under way."}</p><button class="btn" data-goto="tourn">Open tournament</button></div>`:""}`;
   out.querySelectorAll("[data-goto]").forEach(a=>a.onclick=e=>{e.preventDefault();show(a.dataset.goto)});
 }
-function renderAll(){populateSelects();renderScorer();renderLog();renderLeague();renderPlayers();renderT();renderHome()}
+const ord=n=>(n%100>=11&&n%100<=13)?"th":(["th","st","nd","rd"][n%10]||"th");
+let ME=null;try{ME=localStorage.getItem("darts-me")}catch(e){}
+function renderMine(){
+  const sel=$("meSel");if(!sel)return;
+  const names=S.players.filter(p=>p.status!=="Withdrawn").map(p=>p.name).sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">Choose your name…</option>'+names.map(n=>`<option ${n===ME?"selected":""}>${esc(n)}</option>`).join("");
+  sel.onchange=()=>{ME=sel.value||null;try{ME?localStorage.setItem("darts-me",ME):localStorage.removeItem("darts-me")}catch(e){}renderMine()};
+  const out=$("mineOut");const me=ME&&pl(ME);
+  if(!me){out.innerHTML=`<div class="card"><p class="note">Pick your name to see who you've played and who's left. This phone remembers it.</p></div>`;return}
+  if(me.status==="Pending"||!me.div){out.innerHTML=`<div class="card"><p>You're waiting for the admin to put you in a division. Meanwhile, join the <a href="${DISCORD}" target="_blank" rel="noopener">Discord</a>.</p></div>`;return}
+  const {list,sts}=aggregate(),a=list.find(x=>x.name===ME);
+  const opps=S.players.filter(p=>p.div===me.div&&p.status==="Active"&&p.name!==ME).map(p=>p.name).sort((x,y)=>x.localeCompare(y));
+  const ok=S.log.filter((r,i)=>sts[i]==="OK");
+  const rows=opps.map(o=>{const ms=ok.filter(r=>(r.a===ME&&r.b===o)||(r.b===ME&&r.a===o)).map(r=>{const mine=r.a===ME?r.la:r.lb,their=r.a===ME?r.lb:r.la;return {mine,their,res:mine>their?"W":mine<their?"L":"D"}});
+    return {o,ms,left:Math.max(0,TIMES-ms.length)}});
+  const left=rows.reduce((t,r)=>t+r.left,0);
+  const se=CURS;const end=se?seasonEnd(se):null;const daysLeft=end?Math.ceil((new Date(end+"T23:59:59")-new Date())/864e5):null;
+  const tm=[];const t=tCur();if(t&&(t.status==="groups"||t.status==="knockout"))TS.matches.filter(m=>!m.winner&&(m.player_a===ME||m.player_b===ME)&&((t.status==="groups"&&m.stage==="group")||(t.status==="knockout"&&m.stage==="ko"))).forEach(m=>tm.push(m));
+  out.innerHTML=`<div class="card"><h2 style="margin-bottom:2px">${esc(ME)}</h2><p class="note" style="margin:0">Division ${me.div} · ${a&&a.pos?`${a.pos}${ord(a.pos)} place`:"no position yet"} · ${a?a.Pts:0} pts from ${a?a.P:0} played (${a?a.PPG.toFixed(2):"0.00"} PPG) · W${a?a.W:0} D${a?a.D:0} L${a?a.L:0}${a&&a.q?' · <span class="pill ok">Playoff place</span>':""}</p>
+    <p style="margin:8px 0 0"><b>${left}</b> league match${left===1?"":"es"} left to play${daysLeft!=null?` · ${daysLeft>0?daysLeft+" day"+(daysLeft===1?"":"s")+" until "+fmtD(end):"season ended "+fmtD(end)}`:""}${a&&a.status==="Active"&&!a.elig&&a.minq?` · play ${Math.max(0,a.minq-a.P)} more to qualify for playoffs`:""}</p>
+    <p class="note" style="margin:6px 0 0">Arrange games in the <a href="${DISCORD}" target="_blank" rel="noopener">Discord</a>.</p></div>
+    <div class="card"><h2>Division ${me.div} opponents</h2>${rows.map(r=>`<div class="tm"><div class="who"><div class="w">${esc(r.o)}</div><div class="note">${r.ms.length?r.ms.map(x=>`${x.res} ${x.mine}-${x.their}`).join(" · "):"Not played yet"}</div></div>
+      <div class="sc" style="font-size:15px">${r.left?`<span class="pill bad">${r.left} left</span>`:'<span class="pill ok">Done</span>'}</div>
+      ${r.left?`<div class="act"><button class="btn" data-play="${esc(r.o)}">Score it</button><button class="btn" data-enter="${esc(r.o)}">Enter app result</button></div>`:""}</div>`).join("")||'<p class="note">Nobody else in your division yet.</p>'}</div>
+    ${tm.length?`<div class="card"><h2>${esc(t.name)}</h2>${tm.map(m=>`<div class="tm"><div class="who"><div class="w">v ${esc(m.player_a===ME?m.player_b:m.player_a)}</div><div class="note">${m.stage==="group"?"Group "+String.fromCharCode(64+m.group_no):roundName(t,m.round_no)}</div></div><div class="sc"><button class="btn" data-goto2="tourn" style="padding:6px 10px;font-size:12px">Play</button></div></div>`).join("")}</div>`:""}`;
+  out.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>{S.match=null;save();show("scorer");$("selA").value=ME;$("selB").value=b.dataset.play;window.scrollTo(0,0)});
+  out.querySelectorAll("[data-enter]").forEach(b=>b.onclick=()=>{show("log");$("qA").value=ME;$("qB").value=b.dataset.enter;$("qhA").textContent=ME;$("qhB").textContent=b.dataset.enter;$("qLA").focus()});
+  out.querySelectorAll("[data-goto2]").forEach(b=>b.onclick=()=>show("tourn"));
+}
+function renderSeasonBits(){
+  if(!CURS)return;const end=seasonEnd(CURS);
+  const rd=$("ruleDates");if(rd)rd.textContent=`${CURS.name} runs ${fmtD(CURS.start_date)} – ${fmtD(end)} (${CURS.weeks} weeks).`;
+  const past=SEASONS.filter(x=>x.snapshot);const box=$("pastBox");if(!box)return;
+  box.hidden=!past.length;if(!past.length)return;
+  const pick=$("pastSel");const v=pick.value;pick.innerHTML=past.slice().reverse().map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("");if(v)pick.value=v;
+  const se=past.find(x=>String(x.id)===pick.value)||past[past.length-1],sn=se.snapshot||{};
+  $("pastOut").innerHTML=`<p class="note">${fmtD(se.start_date)} – ${fmtD(seasonEnd(se))} · ${sn.matches||0} matches played</p>`+
+    [1,2,3].map(d=>{const t=(sn.divisions||{})[d]||[];return t.length?`<div class="divh">Division ${d}</div><div class="tw"><table><tr><th>Pos</th><th class="l">Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th><th>PPG</th></tr>${t.map(a=>`<tr class="${a.q?"q":""}"><td>${a.pos}</td><td class="l"><b>${esc(a.name)}</b></td><td>${a.P}</td><td>${a.W}</td><td>${a.D}</td><td>${a.L}</td><td>${a.LD>0?"+":""}${a.LD}</td><td>${a.Pts}</td><td>${(+a.PPG).toFixed(2)}</td></tr>`).join("")}</table></div>`:""}).join("")+
+    (sn.honours?`<div class="divh">Honours</div><p style="margin:4px 0">Highest checkout: <b>${esc((sn.honours.hf||[])[0]?.name||"–")}</b> ${sn.honours.hf?.[0]?.v||""} · Most 180s: <b>${esc((sn.honours.b180||[])[0]?.name||"–")}</b> ${sn.honours.b180?.[0]?.v||""} · Best average: <b>${esc((sn.honours.avg||[])[0]?.name||"–")}</b> ${sn.honours.avg?.[0]?.v||""}</p>`:"");
+}
+function snapshot(){const {list,sts}=aggregate();const div={};[1,2,3].forEach(d=>div[d]=list.filter(a=>a.div===d&&a.key>=0).sort((x,y)=>x.pos-y.pos).map(a=>({pos:a.pos,name:a.name,P:a.P,W:a.W,D:a.D,L:a.L,LD:a.LD,Pts:a.Pts,PPG:+a.PPG.toFixed(3),q:!!a.q})));
+  const t3=(arr,f)=>arr.slice(0,3).map(a=>({name:a.name,v:f(a)}));
+  return {divisions:div,matches:sts.filter(x=>x==="OK").length,honours:{hf:t3(list.filter(a=>a.hf>0).sort((x,y)=>y.hf-x.hf),a=>a.hf),b180:t3(list.filter(a=>a.b180>0).sort((x,y)=>y.b180-x.b180),a=>a.b180),avg:t3(list.filter(a=>a.tda!=null&&a.tdaN>=2).sort((x,y)=>y.tda-x.tda),a=>+a.tda.toFixed(2))}}}
+const ACT_ICON={void_result:"Result removed",update_player:"Player",add_player:"Player added",join_code:"Join code",password:"Password",new_season:"Season",edit_season:"Season",t_create:"Tournament",remove_entry:"Tournament",t_draw:"Tournament",clear_result:"Tournament",reversal:"Reversal"};
+async function loadAdminLog(){
+  if(!ADMIN)return;const sel=$("alSeason");const v=sel.value;
+  sel.innerHTML=SEASONS.slice().reverse().map(x=>`<option value="${x.id}">${esc(x.name)}${x.id===CURS.id?" (current)":""}</option>`).join("");if(v)sel.value=v;
+  const {data,error}=await db.rpc("lg_admin_log_list",{p_pin:ADMIN,p_season:+sel.value||CURS.id});
+  if(error){$("alMsg").textContent=error.message;return}
+  $("alOut").innerHTML=(data||[]).map(e=>{const when=new Date(e.at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    let st=e.status==="reversed"?`<span class="pill bad">Reversed by Admin ${e.rev_by}</span>`:e.status==="requested"?`<span class="pill" style="background:var(--warn-soft)">Reversal requested by Admin ${e.req_by}${e.req_note?": "+esc(e.req_note):""}</span>`:"";
+    let act="";
+    if(e.status==="done"&&e.reversible)act=`<button class="btn" data-req="${e.id}">Request reversal</button>`;
+    if(e.status==="requested")act=(e.req_by!==ADMIN_NO?`<button class="btn primary" data-conf="${e.id}">Confirm reversal</button>`:`<span class="note">Waiting for another admin to confirm</span>`)+` <button class="btn" data-cancel="${e.id}">Cancel request</button>`;
+    if(!e.reversible&&e.action!=="reversal")act=`<span class="note">Can't be reversed</span>`;
+    return `<div class="tm"><div class="who"><div class="w" style="white-space:normal">${esc(e.summary)}</div><div class="note">#${e.id} · ${when} · Admin ${e.admin} · ${ACT_ICON[e.action]||e.action}</div>${st?`<div style="margin-top:4px">${st}</div>`:""}</div><div></div><div class="act">${act}</div></div>`}).join("")||'<p class="note">No admin actions this season yet.</p>';
+  $("alOut").querySelectorAll("[data-req]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Request it?";return}
+    const {error}=await db.rpc("lg_admin_request_reversal",{p_pin:ADMIN,p_log:+b.dataset.req,p_note:null});$("alMsg").textContent=error?error.message:"Reversal requested. Another admin needs to confirm it.";loadAdminLog()});
+  $("alOut").querySelectorAll("[data-conf]").forEach(b=>b.onclick=async()=>{if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Confirm and undo?";return}
+    const {error}=await db.rpc("lg_admin_confirm_reversal",{p_pin:ADMIN,p_log:+b.dataset.conf});$("alMsg").textContent=error?error.message:"Reversed.";await loadData();await loadT();loadAdminLog()});
+  $("alOut").querySelectorAll("[data-cancel]").forEach(b=>b.onclick=async()=>{const {error}=await db.rpc("lg_admin_cancel_request",{p_pin:ADMIN,p_log:+b.dataset.cancel});$("alMsg").textContent=error?error.message:"Request cancelled.";loadAdminLog()});
+}
+function renderAll(){renderSeasonBits();renderMine();populateSelects();renderScorer();renderLog();renderLeague();renderPlayers();renderT();renderHome()}
 renderAll();
 renderCode();
 loadData();
